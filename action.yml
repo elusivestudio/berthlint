@@ -1,0 +1,38 @@
+name: Shipcheck
+description: Static native mobile release and fastlane metadata validation
+inputs:
+  path:
+    description: Mobile project directory relative to the workspace
+    default: "."
+  platform:
+    description: all, ios, or android
+    default: all
+  strict:
+    description: Fail on warnings as well as errors
+    default: "false"
+  config:
+    description: Optional config path relative to the mobile project
+    default: ""
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+    - name: Build Shipcheck
+      shell: bash
+      run: |
+        npm ci --include=dev --prefix "$GITHUB_ACTION_PATH"
+        npm run build --prefix "$GITHUB_ACTION_PATH"
+    - name: Validate release
+      shell: bash
+      env:
+        SHIPCHECK_PATH: ${{ inputs.path }}
+        SHIPCHECK_PLATFORM: ${{ inputs.platform }}
+        SHIPCHECK_STRICT: ${{ inputs.strict }}
+        SHIPCHECK_CONFIG: ${{ inputs.config }}
+      run: |
+        args=("$SHIPCHECK_PATH" --format github --platform "$SHIPCHECK_PLATFORM")
+        if [[ "$SHIPCHECK_STRICT" == "true" ]]; then args+=(--strict); fi
+        if [[ -n "$SHIPCHECK_CONFIG" ]]; then args+=(--config "$SHIPCHECK_CONFIG"); fi
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

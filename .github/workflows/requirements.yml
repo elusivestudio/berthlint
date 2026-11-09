@@ -1,0 +1,26 @@
+name: Requirements review
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
+permissions:
+  contents: read
+jobs:
+  freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Flag stale policy data
+        run: |
+          node --input-type=module <<'JS'
+          import { readFile } from "node:fs/promises";
+          const data = JSON.parse(await readFile("src/requirements/store.v1.json", "utf8"));
+          const age = (Date.now() - Date.parse(data.verifiedOn)) / 86400000;
+          if (!Number.isFinite(age) || age > data.reviewAfterDays) {
+            throw new Error(`Store requirements last verified ${data.verifiedOn}; re-verify official sources.`);
+          }
+          console.log(`Requirements verified ${Math.floor(age)} days ago.`);
+          JS

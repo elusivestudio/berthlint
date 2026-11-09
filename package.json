@@ -1,0 +1,48 @@
+{
+  "name": "shipcheck",
+  "version": "0.1.0",
+  "description": "Static release checks for native mobile apps and fastlane store metadata.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "bin": {
+    "shipcheck": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "action.yml"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "node src/cli.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.12.0",
+    "image-size": "^2.1.0",
+    "import-meta-resolve": "^4.2.0",
+    "plist": "^5.1.1",
+    "xcode": "^4.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/plist": "^3.0.5",
+    "@types/xcode": "^3.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

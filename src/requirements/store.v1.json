@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "verifiedOn": "2026-11-09",
+  "reviewAfterDays": 180,
+  "sources": {
+    "iosMetadata": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
+    "iosName": "https://developer.apple.com/help/app-store-connect/reference/app-information/app-information",
+    "androidMetadata": "https://support.google.com/googleplay/android-developer/answer/9859152",
+    "iosScreenshots": "https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications",
+    "androidScreenshots": "https://support.google.com/googleplay/android-developer/answer/9866151",
+    "androidTarget": "https://support.google.com/googleplay/android-developer/answer/11926878",
+    "iosPrivacy": "https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api"
+  },
+  "metadata": {
+    "ios": {
+      "name": { "max": 30, "min": 2, "unit": "characters", "required": true },
+      "subtitle": { "max": 30, "min": 0, "unit": "characters", "required": false },
+      "keywords": { "max": 100, "min": 1, "unit": "bytes", "required": true },
+      "description": { "max": 4000, "min": 1, "unit": "characters", "required": true },
+      "promotional_text": { "max": 170, "min": 0, "unit": "characters", "required": false },
+      "release_notes": { "max": 4000, "min": 0, "unit": "characters", "required": false }
+    },
+    "android": {
+      "title": { "max": 30, "min": 1, "unit": "characters", "required": true },
+      "short_description": { "max": 80, "min": 1, "unit": "characters", "required": true },
+      "full_description": { "max": 4000, "min": 1, "unit": "characters", "required": true }
+    }
+  },
+  "androidTarget": {
+    "effectiveOn": "2026-08-31",
+    "phone": 36,
+    "wear": 35,
+    "automotive": 35,
+    "tv": 34,
+    "xr": 34
+  },
+  "screenshots": {
+    "ios": {
+      "maxPerGroup": 10,
+      "orientationRestricted": [[640, 1096], [640, 920], [1536, 2008], [768, 1004], [1136, 600], [960, 600], [2048, 1496], [1024, 748]],
+      "groups": {
+        "iphone-dynamic-large": [[1260, 2736], [1290, 2796], [1320, 2868]],
+        "iphone-face-large": [[1284, 2778], [1242, 2688]],
+        "iphone-dynamic-medium": [[1179, 2556], [1206, 2622]],
+        "iphone-face-medium": [[1125, 2436], [1080, 2340], [1170, 2532]],
+        "iphone-home-large": [[1242, 2208]],
+        "iphone-home-medium": [[750, 1334]],
+        "iphone-home-4": [[640, 1096], [640, 1136], [600, 1136]],
+        "iphone-home-3.5": [[640, 920], [640, 960], [600, 960]],
+        "ipad-13": [[2064, 2752], [2048, 2732]],
+        "ipad-11": [[1488, 2266], [1512, 2316], [1668, 2420], [1668, 2388], [1640, 2360]],
+        "ipad-10.5": [[1668, 2224]],
+        "ipad-9.7": [[1536, 2008], [1536, 2048], [1496, 2048], [768, 1004], [768, 1024], [748, 1024]]
+      }
+    },
+    "android": { "minTotal": 2, "maxPerGroup": 8, "minDimension": 320, "maxDimension": 3840, "maxAspectRatio": 2 }
+  },
+  "requiredReasonCategories": [
+    "NSPrivacyAccessedAPICategoryFileTimestamp",
+    "NSPrivacyAccessedAPICategorySystemBootTime",
+    "NSPrivacyAccessedAPICategoryDiskSpace",
+    "NSPrivacyAccessedAPICategoryActiveKeyboards",
+    "NSPrivacyAccessedAPICategoryUserDefaults"
+  ]
+}
