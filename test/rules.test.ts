@@ -20,10 +20,25 @@ const privacy = (data: Record<string, unknown>) => ({ file: "PrivacyInfo.xcpriva
 describe("rule registry", () => {
   it("has unique rule IDs and policy links", () => {
     expect(new Set(builtInRules.map((rule) => rule.id)).size).toBe(builtInRules.length);
-    for (const rule of builtInRules) expect(rule.policyUrl).toMatch(/^https:\/\//);
+    for (const rule of builtInRules) {
+      expect(rule.policyUrl).toMatch(/^https:\/\//);
+      expect(rule.description, rule.id).toBeTruthy();
+    }
   });
   it("does not invent findings for empty inputs", () => {
     for (const rule of builtInRules) expect(rule.check(model(), context), rule.id).toEqual([]);
+  });
+});
+
+describe("current iPhone screenshot groups", () => {
+  it.each([
+    [1398, 2034, "iphone-duo-outer"], [2034, 1398, "iphone-duo-outer"],
+    [2007, 2853, "iphone-duo-inner"], [2853, 2007, "iphone-duo-inner"],
+  ] as const)("recognizes %sx%s as %s without inventing a future upload requirement", (width, height, group) => {
+    expect(iosScreenshotGroup(width, height)).toBe(group);
+    expect(check("metadata/screenshot-dimensions", model({
+      locales: [locale({ screenshots: [{ file: "duo.png", group, width, height }] })],
+    }))).toEqual([]);
   });
 });
 
@@ -190,14 +205,18 @@ describe("metadata boundaries", () => {
     })] }))).toEqual([]);
   });
   it("detects required fields and blank text", () => {
-    expect(check("metadata/required-fields", model({ locales: [locale({ fields: {} })] }))).toHaveLength(3);
+    expect(check("metadata/required-fields", model({ locales: [locale({ fields: {} })] }))).toEqual([]);
+    expect(check("metadata/completeness", model({ locales: [locale({ fields: {} })] }))).toHaveLength(3);
+    expect(check("metadata/required-fields", model({ locales: [locale({
+      fields: { name: { file: "name.txt", value: " " } },
+    })] }))).toHaveLength(1);
     expect(check("metadata/required-fields", model({ locales: [locale()] }))).toEqual([]);
   });
   it("checks default-locale presence and translated-field parity", () => {
     expect(check("metadata/localizations", model({ locales: [locale({ locale: "fr-FR" })] }))).toHaveLength(1);
     expect(check("metadata/localizations", model({
       locales: [locale(), locale({ locale: "fr-FR", fields: {} })],
-    }))).toHaveLength(3);
+    }))).toEqual([]);
   });
   it.each([[1179, 2556], [2556, 1179], [2064, 2752]])("recognizes iOS size %sx%s", (w, h) => {
     expect(iosScreenshotGroup(w, h)).toBeDefined();
@@ -229,7 +248,8 @@ describe("metadata boundaries", () => {
     })] }))).toHaveLength(count);
   });
   it("checks count limits per device group and minimum total", () => {
-    expect(check("metadata/screenshot-counts", model({ locales: [locale({ screenshots: [] })] }))).toHaveLength(1);
+    expect(check("metadata/screenshot-counts", model({ locales: [locale({ screenshots: [] })] }))).toEqual([]);
+    expect(check("metadata/completeness", model({ locales: [locale({ screenshots: [] })] }))).toHaveLength(1);
     const shot = { file: "x.png", width: 1080, height: 1920, group: "phoneScreenshots" };
     const project = (count: number) => model({
       locales: [locale({ platform: "android", screenshots: Array.from({ length: count }, () => shot) })],
@@ -251,7 +271,8 @@ describe("metadata boundaries", () => {
       platform: "android",
       screenshots: Array.from({ length: 2 }, () => ({ file: "wear.png", width: 384, height: 384, group: "wearScreenshots" })),
     })] });
-    expect(check("metadata/screenshot-counts", project)).toHaveLength(1);
+    expect(check("metadata/screenshot-counts", project)).toEqual([]);
+    expect(check("metadata/completeness", project).some((finding) => finding.message.includes("screenshots"))).toBe(true);
     expect(check("system/specialized-android-store", project)).toHaveLength(1);
   });
 });
@@ -261,14 +282,14 @@ describe("engine", () => {
     const report = runRules(model({ ios: [ios({ build: "0" })], sources: [source("UIWebView")] }),
       builtInRules, configSchema.parse({ rules: { "ios/version-format": "warning", "ios/deprecated-apis": "off" } }),
       { now: context.now });
-    expect(report.summary).toEqual({ error: 0, warning: 1, note: 0 });
+    expect(report.summary).toEqual({ error: 0, warning: 1, note: 2 });
     expect(report.findings[0]?.ruleId).toBe("ios/version-format");
   });
   it("supports object-form overrides and deterministic sorting", () => {
     const report = runRules(model({
       ios: [ios({ build: "0" })], sources: [source("UIWebView")],
     }), builtInRules, configSchema.parse({ rules: { "ios/deprecated-apis": { severity: "error" } } }), { now: context.now });
-    expect(report.findings.map((finding) => finding.severity)).toEqual(["error", "error"]);
+    expect(report.findings.map((finding) => finding.severity)).toEqual(["error", "error", "note", "note"]);
   });
   it("filters platform-specific rules and all-platform metadata", () => {
     const report = runRules(model({

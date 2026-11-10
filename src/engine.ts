@@ -9,6 +9,7 @@ import { builtInRules } from "./rules/index.ts";
 const ruleSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/),
   title: z.string().min(1),
+  description: z.string().min(1).optional(),
   platform: z.enum(["ios", "android", "all"]),
   severity: z.enum(["error", "warning", "note"]),
   policyUrl: z.url(),
@@ -68,6 +69,8 @@ export function runRules(
   }
   const context: RuleContext = {
     defaultLocale: config.defaultLocale, androidDevice: config.androidDevice, now: options.now ?? new Date(),
+    ...(config.iosSdkVersion !== undefined && { iosSdkVersion: config.iosSdkVersion }),
+    ...(config.xcodeVersion !== undefined && { xcodeVersion: config.xcodeVersion }),
   };
   const findings: Finding[] = model.diagnostics.flatMap((finding) => {
     const severity = configuredSeverity(finding.ruleId, finding.severity, config);

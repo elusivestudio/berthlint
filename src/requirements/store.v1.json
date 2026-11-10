@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "verifiedOn": "2026-11-09",
+  "verifiedOn": "2026-11-10",
   "reviewAfterDays": 180,
   "sources": {
     "iosMetadata": "https://developer.apple.com/help/app-store-connect/reference/app-information/platform-version-information",
@@ -9,7 +9,10 @@
     "iosScreenshots": "https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications",
     "androidScreenshots": "https://support.google.com/googleplay/android-developer/answer/9866151",
     "androidTarget": "https://support.google.com/googleplay/android-developer/answer/11926878",
-    "iosPrivacy": "https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api"
+    "iosPrivacy": "https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api",
+    "iosSubmission": "https://developer.apple.com/news/upcoming-requirements/?id=04282026a",
+    "iosDeployment": "https://developer.apple.com/news/upcoming-requirements/?id=0992026a",
+    "xcodeSupport": "https://developer.apple.com/support/xcode/"
   },
   "metadata": {
     "ios": {
@@ -34,11 +37,26 @@
     "tv": 34,
     "xr": 34
   },
+  "iosSubmission": {
+    "effectiveOn": "2026-04-28",
+    "minimumSdk": "26.0",
+    "minimumXcode": "26.0"
+  },
+  "iosToolchains": [
+    { "xcodeMajor": 26, "minimumDeploymentTarget": "15.0" },
+    { "xcodeMajor": 27, "minimumDeploymentTarget": "15.0" }
+  ],
+  "iosDeployment": {
+    "effectiveOn": "2026-09-09",
+    "minimum": "13.0"
+  },
   "screenshots": {
     "ios": {
       "maxPerGroup": 10,
       "orientationRestricted": [[640, 1096], [640, 920], [1536, 2008], [768, 1004], [1136, 600], [960, 600], [2048, 1496], [1024, 748]],
       "groups": {
+        "iphone-duo-outer": [[1398, 2034]],
+        "iphone-duo-inner": [[2007, 2853]],
         "iphone-dynamic-large": [[1260, 2736], [1290, 2796], [1320, 2868]],
         "iphone-face-large": [[1284, 2778], [1242, 2688]],
         "iphone-dynamic-medium": [[1179, 2556], [1206, 2622]],

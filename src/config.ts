@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { z } from "zod";
+import { releaseVersionSchema } from "./versions.ts";
 
 const ruleSetting = z.union([
   z.enum(["off", "error", "warning", "note"]),
@@ -11,6 +12,8 @@ export const configSchema = z.strictObject({
   defaultLocale: z.string().min(1).default("en-US"),
   androidDevice: z.enum(["phone", "wear", "automotive", "tv", "xr"]).default("phone"),
   configuration: z.string().min(1).default("Release"),
+  iosSdkVersion: releaseVersionSchema.optional(),
+  xcodeVersion: releaseVersionSchema.optional(),
   metadata: z.strictObject({
     ios: z.string().min(1).optional(),
     android: z.string().min(1).optional(),

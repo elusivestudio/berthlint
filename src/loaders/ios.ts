@@ -3,9 +3,11 @@ import xcode from "xcode";
 import type { Config } from "../config.ts";
 import type { Finding, IosBundle } from "../types.ts";
 import { array, flutterVersion, object, portable, reference, tryReadPlist, unquote } from "./helpers.ts";
+import { targetSources } from "./xcode-sources.ts";
 
 export async function loadIos(
   root: string, files: readonly string[], config: Config, diagnostics: Finding[],
+  excludedSources: Set<string> = new Set(),
 ): Promise<IosBundle[]> {
   const bundles: IosBundle[] = [];
   const projects = files.filter((f) => f.endsWith(".xcodeproj/project.pbxproj"));
@@ -34,16 +36,33 @@ export async function loadIos(
     const inherited = object(ids.map((id) => object(objects.XCBuildConfiguration[id ?? ""]))
       .find((v) => unquote(v.name) === config.configuration)?.buildSettings);
 
-    for (const target of Object.values(objects.PBXNativeTarget ?? {}).filter((v) => typeof v === "object")) {
+    const xcconfigTargets: string[] = [];
+    const unresolvedVersions: string[] = [];
+    for (const [targetId, target] of Object.entries(objects.PBXNativeTarget ?? {})) {
+      if (typeof target !== "object" || target === null) continue;
       const kind = unquote(target.productType) ?? "";
+      if (/(?:watch|unit-test|ui-testing)/.test(kind)) {
+        for (const source of targetSources(root, projectRoot, objects, targetId, files)) excludedSources.add(source);
+      }
       if (!["com.apple.product-type.application", "com.apple.product-type.app-extension"].includes(kind)) continue;
       const list = object(objects.XCConfigurationList[unquote(target.buildConfigurationList) ?? ""]);
       const configurations = array(list.buildConfigurations).map((v) =>
         object(objects.XCBuildConfiguration[reference(v)]));
       const selected = configurations.find((v) => unquote(v.name) === config.configuration);
-      if (!selected) throw new Error(`${file}: target ${unquote(target.name)} has no ${config.configuration} configuration`);
+      if (!selected) {
+        const available = configurations.map((configuration) => unquote(configuration.name)).filter(Boolean);
+        throw new Error(`${file}: target ${unquote(target.name)} has no ${config.configuration} configuration. Available configurations: ${available.join(", ")}. Select one with --configuration <name> or configuration in shipcheck.config.json. For repositories containing separate apps, scan the intended app subdirectory.`);
+      }
       const settings = { ...inherited, ...object(selected.buildSettings) };
-      if (unquote(settings.SDKROOT) === "macosx") continue;
+      const sdk = unquote(settings.SDKROOT);
+      const platforms = unquote(settings.SUPPORTED_PLATFORMS)?.split(/\s+/).filter(Boolean);
+      const nonIos = /^(?:watch(?:os|simulator)|appletv(?:os|simulator)|xr(?:os|simulator)|macosx)(?:\d.*)?$/;
+      if ((sdk && nonIos.test(sdk))
+        || (platforms?.length && platforms.every((value) => nonIos.test(value)))
+        || (!sdk && settings.WATCHOS_DEPLOYMENT_TARGET !== undefined && settings.IPHONEOS_DEPLOYMENT_TARGET === undefined)) {
+        for (const source of targetSources(root, projectRoot, objects, targetId, files)) excludedSources.add(source);
+        continue;
+      }
       const expand = (value: unknown): string | undefined => unquote(value)?.replace(
         /\$\(([^)]+)\)|\$\{([^}]+)\}/g,
         (token: string, a: string | undefined, b: string | undefined) => {
@@ -79,40 +98,52 @@ export async function loadIos(
       }
       const version = expand(object(merged).CFBundleShortVersionString ?? settings.MARKETING_VERSION);
       const build = expand(object(merged).CFBundleVersion ?? settings.CURRENT_PROJECT_VERSION);
-      if ([version, build].some((value) => value?.includes("$("))) {
-        diagnostics.push({
-          ruleId: "system/analysis", severity: "warning", file: location,
-          message: `${unquote(target.name)}: version or build is set by an unresolved variable (${version}/${build}); version checks were skipped.`,
-          fix: "Verify the effective release version and build number in Xcode or your CI build command.",
-          policyUrl: "https://developer.apple.com/documentation/bundleresources/information-property-list",
-        });
+      const deploymentTarget = expand(settings.IPHONEOS_DEPLOYMENT_TARGET ?? object(merged).MinimumOSVersion);
+      if ([version, build].some((value) => value && /\$[({]/.test(value))) {
+        unresolvedVersions.push(`${unquote(target.name)} (${version}/${build})`);
       }
       bundles.push({
         file: location, project: file, name: unquote(target.name) ?? file, configuration: config.configuration,
         info: merged, ...(version !== undefined && { version }), ...(build !== undefined && { build }),
+        ...(deploymentTarget !== undefined && { deploymentTarget }),
+        sourceFiles: targetSources(root, projectRoot, objects, targetId, files),
       });
       if (selected.baseConfigurationReference || ids.some((id) =>
         object(objects.XCBuildConfiguration[id ?? ""]).baseConfigurationReference)) {
-        diagnostics.push({
-          ruleId: "system/analysis", severity: "warning", file,
-          message: `${unquote(target.name)} uses an xcconfig; external build settings are not evaluated.`,
-          fix: "Confirm the effective Release versions, permissions and Info.plist in Xcode.",
-          policyUrl: "https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project",
-        });
+        xcconfigTargets.push(unquote(target.name) ?? targetId);
       }
     }
+    if (xcconfigTargets.length) diagnostics.push({
+      ruleId: "system/analysis", severity: "warning", file,
+      message: `External xcconfig build settings are not evaluated for ${xcconfigTargets.length} target(s): ${xcconfigTargets.join(", ")}.`,
+      fix: "Confirm the effective Release versions, permissions and Info.plist in Xcode.",
+      policyUrl: "https://developer.apple.com/documentation/xcode/adding-a-build-configuration-file-to-your-project",
+    });
+    if (unresolvedVersions.length) diagnostics.push({
+      ruleId: "system/analysis", severity: "warning", file,
+      message: `Version or build is set by an unresolved variable for ${unresolvedVersions.length} target(s): ${unresolvedVersions.join(", ")}; version checks were skipped for these targets.`,
+      fix: "Verify the effective release version and build number in Xcode or your CI build command.",
+      policyUrl: "https://developer.apple.com/documentation/bundleresources/information-property-list",
+    });
   }
   for (const file of files.filter((f) => projects.length === 0 && /(?:^|\/)Info\.plist$/.test(f))) {
     const info = await tryReadPlist(resolve(root, file), file, diagnostics);
     if (!info) continue;
+    const supported = array(info.CFBundleSupportedPlatforms).map(unquote);
+    if (info.WKWatchKitApp === true
+      || (supported.length && !supported.some((value) => value === "iPhoneOS" || value === "iPhoneSimulator"))
+      || (unquote(info.DTPlatformName) && !["iphoneos", "iphonesimulator"].includes(unquote(info.DTPlatformName)!))) continue;
     if (!("CFBundleShortVersionString" in info || "CFBundleVersion" in info)
       && bundles.length > 0) continue;
     const version = unquote(info.CFBundleShortVersionString);
     const build = unquote(info.CFBundleVersion);
+    const deploymentTarget = unquote(info.MinimumOSVersion);
     bundles.push({
       file, name: dirname(file), configuration: config.configuration, info,
       ...(version !== undefined && { version }), ...(build !== undefined && { build }),
+      ...(deploymentTarget !== undefined && { deploymentTarget }),
     });
   }
+  for (const bundle of bundles) for (const source of bundle.sourceFiles ?? []) excludedSources.delete(source);
   return bundles;
 }

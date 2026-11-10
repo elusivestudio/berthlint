@@ -36,7 +36,38 @@ describe("native project loaders", () => {
   });
   it("fails explicitly for missing Xcode configurations", async () => {
     await expect(loadProject(resolve(fixtures, "xcode"), configSchema.parse({ configuration: "Unknown" })))
-      .rejects.toThrow("no Unknown configuration");
+      .rejects.toThrow("no Unknown configuration. Available configurations: Release. Select one with --configuration");
+  });
+  it("loads an explicitly selected custom archive configuration", async () => {
+    const root = await tempProject();
+    const file = "App.xcodeproj/project.pbxproj";
+    const pbx = await readFile(resolve(fixtures, "xcode", file), "utf8");
+    await put(root, file, pbx.replaceAll("Release", "Firefox"));
+    const project = await loadProject(root, configSchema.parse({ configuration: "Firefox" }));
+    expect(project.ios[0]).toMatchObject({ configuration: "Firefox", version: "1.2.3", build: "7" });
+  });
+  it("loads inherited, overridden and variable deployment targets from Xcode settings", async () => {
+    const root = await tempProject();
+    const file = "App.xcodeproj/project.pbxproj";
+    const pbx = await readFile(resolve(fixtures, "xcode", file), "utf8");
+    const inherited = pbx.replace("MARKETING_VERSION = 1.2.3;",
+      "MARKETING_VERSION = 1.2.3; IPHONEOS_DEPLOYMENT_TARGET = 15.0;");
+    await put(root, file, inherited);
+    expect((await loadProject(root, config)).ios[0]?.deploymentTarget).toBe("15.0");
+    await put(root, file, inherited.replace("GENERATE_INFOPLIST_FILE = YES;",
+      'GENERATE_INFOPLIST_FILE = YES; MIN_IOS = 16.0; IPHONEOS_DEPLOYMENT_TARGET = "$(MIN_IOS)";'));
+    expect((await loadProject(root, config)).ios[0]?.deploymentTarget).toBe("16.0");
+    await put(root, file, inherited.replace("GENERATE_INFOPLIST_FILE = YES;",
+      'GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = "${UNRESOLVED}";'));
+    expect((await loadProject(root, config)).ios[0]?.deploymentTarget).toBe("${UNRESOLVED}");
+  });
+  it("loads standalone MinimumOSVersion without inferring an SDK version", async () => {
+    const root = await tempProject();
+    await put(root, "Info.plist", `<?xml version="1.0"?><plist version="1.0"><dict>
+      <key>CFBundleVersion</key><string>1</string>
+      <key>CFBundleShortVersionString</key><string>1.0.0</string>
+      <key>MinimumOSVersion</key><string>15.0</string></dict></plist>`);
+    expect((await loadProject(root, config)).ios[0]?.deploymentTarget).toBe("15.0");
   });
   it("resolves Info.plist version variables without creating duplicate targets", async () => {
     const root = await tempProject();
@@ -220,7 +251,9 @@ describe("fastlane metadata", () => {
     const project = await loadProject(root, configSchema.parse({ metadata: { ios: "store" }, screenshots: { ios: "images" } }));
     expect(project.locales[0]?.fields).toEqual({});
     expect(project.locales[0]?.screenshots).toHaveLength(1);
-    expect(runRules(project, builtInRules, config, { now: context.now }).summary.error).toBe(3);
+    const report = runRules(project, builtInRules, config, { now: context.now });
+    expect(report.summary.error).toBe(0);
+    expect(report.findings.filter((finding) => finding.ruleId === "metadata/completeness")).toHaveLength(3);
   });
   it("supports screenshot-only directories without a metadata folder", async () => {
     const root = await tempProject();

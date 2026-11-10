@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="shipcheck rule metadata">
+<title>iOS deployment target compatibility | shipcheck</title>
+<style>
+:root{color-scheme:light dark;font:17px/1.6 system-ui,sans-serif}
+body{max-width:60rem;margin:3rem auto;padding:0 1.25rem}
+a{color:light-dark(#064ca0,#8dc4ff)}code,pre{font-family:ui-monospace,monospace}
+pre{padding:1rem;background:light-dark(#f2f4f7,#20242b);overflow:auto}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.6rem;border-bottom:1px solid #8886}
+footer{margin-top:3rem;border-top:1px solid #8886;padding-top:1rem}h1{line-height:1.2}
+</style>
+</head>
+<body>
+<header><strong>shipcheck</strong> &mdash; static native mobile release checks</header>
+<main>
+<nav><a href="../../index.html">All rules</a></nav>
+<h1>iOS deployment target compatibility</h1>
+<p><code>ios/deployment-target</code> &middot; ios &middot;
+default severity: <strong>error</strong></p>
+<h2>Why this matters and what is checked</h2>
+<p>The minimum supported OS is distinct from the build SDK. Targets must be numeric, meet the dated App Store OS minimum, not exceed the declared SDK, and meet the documented deployment floor for a known declared Xcode family.</p>
+<h2>How to fix it</h2>
+<p>Set IPHONEOS_DEPLOYMENT_TARGET to a supported OS version in the selected build configuration. Do not raise it to the SDK version unnecessarily; confirm xcconfig and CI overrides.</p>
+<h2>Policy and reference</h2>
+<p><a href="https://developer.apple.com/support/xcode/">https://developer.apple.com/support/xcode/</a></p>
+<h2>Configuration</h2>
+<p>Set a severity of <code>error</code>, <code>warning</code> or <code>note</code>,
+or disable the check in <code>shipcheck.config.json</code> when it is intentionally inapplicable:</p>
+<pre><code>{
+  &quot;rules&quot;: {
+    &quot;ios/deployment-target&quot;: &quot;off&quot;
+  }
+}</code></pre></main>
+<footer>Generated from rule metadata. Policy snapshot: 2026-11-10.
+Static checks do not guarantee store acceptance.
+<a href="https://github.com/elusivestudio/shipcheck">Source and usage</a>.</footer>
+</body>
+</html>

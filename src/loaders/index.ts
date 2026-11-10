@@ -16,8 +16,9 @@ export async function loadProject(
   const diagnostics: Finding[] = [];
   const iosEnabled = options.platform !== "android";
   const androidEnabled = options.platform !== "ios";
+  const excludedIosSources = new Set<string>();
   const [ios, android, locales, privacy, sources] = await Promise.all([
-    iosEnabled ? loadIos(root, files, config, diagnostics) : [],
+    iosEnabled ? loadIos(root, files, config, diagnostics, excludedIosSources) : [],
     androidEnabled ? loadAndroid(root, files, config, diagnostics) : [],
     loadMetadata(root, config, diagnostics, options.platform),
     mapLimit(files.filter((file) => iosEnabled && file.endsWith("PrivacyInfo.xcprivacy")), 32,
@@ -44,5 +45,9 @@ export async function loadProject(
       });
     }
   }
-  return { root, ios, android, locales, privacy, sources, diagnostics };
+  return {
+    root, ios, android, locales, privacy,
+    sources: sources.filter((source) => source.platform !== "ios" || !excludedIosSources.has(source.file)),
+    diagnostics,
+  };
 }

@@ -13,6 +13,12 @@ inputs:
   config:
     description: Optional config path relative to the mobile project
     default: ""
+  ios-sdk-version:
+    description: Declared iOS build SDK version (not the deployment target)
+    default: ""
+  xcode-version:
+    description: Declared Xcode release version
+    default: ""
 runs:
   using: composite
   steps:
@@ -31,8 +37,12 @@ runs:
         SHIPCHECK_PLATFORM: ${{ inputs.platform }}
         SHIPCHECK_STRICT: ${{ inputs.strict }}
         SHIPCHECK_CONFIG: ${{ inputs.config }}
+        SHIPCHECK_IOS_SDK: ${{ inputs.ios-sdk-version }}
+        SHIPCHECK_XCODE: ${{ inputs.xcode-version }}
       run: |
         args=("$SHIPCHECK_PATH" --format github --platform "$SHIPCHECK_PLATFORM")
         if [[ "$SHIPCHECK_STRICT" == "true" ]]; then args+=(--strict); fi
         if [[ -n "$SHIPCHECK_CONFIG" ]]; then args+=(--config "$SHIPCHECK_CONFIG"); fi
+        if [[ -n "$SHIPCHECK_IOS_SDK" ]]; then args+=(--ios-sdk-version "$SHIPCHECK_IOS_SDK"); fi
+        if [[ -n "$SHIPCHECK_XCODE" ]]; then args+=(--xcode-version "$SHIPCHECK_XCODE"); fi
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"
