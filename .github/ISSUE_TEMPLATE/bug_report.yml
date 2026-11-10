@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a crash, incorrect output, or unexpected CLI behavior
+body:
+  - type: markdown
+    attributes:
+      value: Do not include secrets or private app sources. Use the private reporting channel in SECURITY.md for vulnerabilities.
+  - type: input
+    id: version
+    attributes:
+      label: Berthlint version or commit and Node version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the exact command, platform, sanitized config and minimal input files.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the exit code and sanitized output or error.
+    validations:
+      required: true

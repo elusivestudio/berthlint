@@ -26,6 +26,7 @@ guarantee of store acceptance.*
 ## In this README
 
 - [Get started](#get-started)
+- [How this differs](#how-this-differs)
 - [CLI and exit codes](#cli)
 - [Recognized project layouts](#recognized-layouts)
 - [Configuration](#configuration)
@@ -58,6 +59,27 @@ inside a mobile repository. `npm pack` creates an installable package.
 The package is prepared for `npx berthlint` once published; that command does not
 currently refer to this unpublished checkout.
 
+After `0.1.0` is published, a clone and local build will no longer be necessary:
+
+```sh
+npx berthlint@0.1.0 /path/to/mobile-app
+# Or install a pinned CLI:
+npm install --global berthlint@0.1.0
+```
+
+### How this differs
+
+Berthlint complements existing release tools rather than replacing them:
+
+- **fastlane** automates builds, signing, screenshots and uploads. Berthlint reads
+  project files and fastlane metadata before those steps, without store credentials.
+- **SwiftLint and Android Lint** focus on source quality and platform-specific
+  analysis. Berthlint focuses on release settings and listing metadata across
+  both stores; it does not replace compiler-backed checks.
+- **App Store Connect and Google Play Console** validate actual uploads and
+  listings. Berthlint offers earlier, offline feedback but cannot inspect remote
+  state, certify a built artifact or predict a store review decision.
+
 ## CLI
 
 ```sh
@@ -68,6 +90,8 @@ berthlint . --format github --strict
 berthlint . --config config/release.json
 berthlint . --platform ios --ios-sdk-version 26.0 --xcode-version 26.0
 berthlint . --no-interactive
+berthlint . --no-plugins
+berthlint . --suppressions config/accepted-findings.json
 berthlint --list-rules
 ```
 
@@ -80,6 +104,8 @@ berthlint --list-rules
 | `--ios-sdk-version` | config value | User-declared iOS SDK used to build, **not** the deployment target |
 | `--xcode-version` | config value | User-declared numeric Xcode release version |
 | `--no-interactive` | false | Disable the missing-SDK prompt |
+| `--no-plugins` | false | Never resolve, import or execute configured JavaScript plugins |
+| `--suppressions` | `berthlint.suppressions.json` | Exact-match accepted findings, relative to the scanned project |
 | `--strict` | false | Treat warnings as CI failures |
 | `--list-rules` | false | List rules, default severities and titles without scanning |
 
@@ -189,6 +215,44 @@ reveal Android's build number. Without a baseline, a note reports the skipped ch
 
 Rule values are `off`, `error`, `warning`, or `note`, either directly or in a
 `{ "severity": ... }` object. `system/analysis` controls loader coverage diagnostics.
+
+### Adopt without disabling rules globally
+
+Commit a `berthlint.suppressions.json` file in the scanned project to accept
+reviewed findings while still checking for new ones:
+
+```json
+{
+  "schemaVersion": 1,
+  "suppressions": [
+    {
+      "ruleId": "ios/deprecated-apis",
+      "file": "App/LegacyView.swift",
+      "message": "Deprecated iOS API: UIWebView.",
+      "reason": "Legacy migration tracked in the team's release backlog."
+    }
+  ]
+}
+```
+
+Copy `ruleId`, `file` and `message` exactly from a JSON report. All three must
+match; paths use forward slashes and are relative to the scanned project (`.` is
+valid for project-wide findings). There are no globs or whole-rule suppressions.
+Source line numbers are intentionally ignored so nearby edits do not invalidate
+an accepted finding. The same rule/file/message at multiple lines is suppressed
+at every occurrence; a different message, file or rule remains visible.
+
+Each entry requires a nonblank reason. Unknown rule IDs, duplicate entries,
+unknown fields, malformed JSON and missing explicitly selected files are
+execution errors. A missing default file means no suppressions. Unmatched entries
+are retained without error; remove obsolete entries during review.
+Suppressed findings are excluded from all report formats, summary counts and
+exit-code decisions. Rules still execute and execution failures are never
+suppressed. This keeps the report schema unchanged.
+
+Use `--suppressions <file>` for another file. API callers can use
+`loadSuppressions(root, path)` and pass the result to
+`runRules(model, rules, config, { suppressions })`.
 
 ### iOS SDK, Xcode and deployment targets
 
@@ -313,9 +377,8 @@ static web server. The pages need no dependencies or JavaScript and are included
 in the npm package. Public hosting is a separate release step.
 
 Generate it with `npm run docs` after changing rule metadata. `npm run docs:check`
-and `npm run check` reject stale or missing pages. The original implementation
-scope is in [the plan](./plan.md); reproducible release checks are documented in
-[release validation](./docs/release-validation.md).
+and `npm run check` reject stale or missing pages. Reproducible release checks are
+documented in [release validation](./docs/release-validation.md).
 
 ## Architecture and plugin API
 
@@ -363,8 +426,17 @@ policy URL when a cross-platform rule needs a store-specific link. Throwing rule
 findings and duplicate IDs fail explicitly.
 
 **Plugins execute with the user's full permissions. They are not sandboxed.**
-Only enable trusted packages, especially when scanning untrusted pull requests.
+Only enable trusted packages. Pass `--no-plugins` when scanning untrusted pull
+requests; this prevents plugin resolution, imports (including top-level code)
+and rule execution, including with `--list-rules`. API callers can use
+`loadRules(root, config, { plugins: false })`. Unknown configured rule overrides
+still fail explicitly, so use a trusted config without plugin-only overrides.
 Treat the model as read-only and keep checks deterministic and filesystem-free.
+
+Disabling plugins is not a sandbox or protection against changed rule settings
+or suppressions. Use a least-privilege job without secrets for untrusted PRs,
+keep the tool/config/suppressions under trusted control, and do not run PR code
+with privileged `pull_request_target` credentials. See [SECURITY.md](./SECURITY.md).
 
 ## CI
 
@@ -378,10 +450,19 @@ annotations. After checking out Berthlint into a `tools/berthlint` subdirectory:
   with:
     path: .
     strict: "true"
+    no-plugins: "true"
     platform: all
     ios-sdk-version: "26.0"
     xcode-version: "26.0"
 ```
+
+Once a maintainer pushes the `v0.1.0` release tag, replace
+`uses: ./tools/berthlint` with `uses: elusivestudio/berthlint@v0.1.0` and omit the
+separate tool checkout. The composite action builds its own tagged source;
+it does not depend on npm publication. Pin a reviewed commit SHA for stronger
+immutability. The `no-plugins` input defaults to `"false"` for compatibility;
+enable it for untrusted code. An optional `suppressions` input selects a
+project-relative suppressions file.
 
 Alternatively run `node /path/to/berthlint/dist/cli.js . --format sarif --output
 berthlint.sarif` and upload with `github/codeql-action/upload-sarif` using
@@ -397,6 +478,30 @@ then verify the CLI, JSON report, public ESM exports and packaged documentation.
 This needs npm registry access and does not publish anything.
 A weekly workflow fails when the
 requirements review date is overdue; it does not automatically change policies.
+
+### fastlane
+
+After installing a pinned CLI (currently via `npm link` from a checkout), put the
+check before the existing build/upload steps in your `Fastfile`:
+
+```ruby
+lane :release do
+  # fastlane executes lanes from fastlane/; .. is the mobile project root.
+  sh("berthlint .. --strict --no-interactive --no-plugins --ios-sdk-version 26.0 --xcode-version 26.0")
+  build_app
+  upload_to_app_store
+end
+```
+
+Use the SDK/Xcode versions intended for your build. For Android, use
+`--platform android` instead of the SDK/Xcode options, then run your existing
+`gradle` and `upload_to_play_store` steps. A nonzero `sh` result stops the lane.
+
+**Don't bypass the gate:** keep Berthlint as a required CI check and run it
+before build/upload. Do not mask failures with `|| true`, `continue-on-error` or
+a rescued fastlane error. Triage findings and add narrow, reasoned suppressions
+for accepted exceptions rather than disabling whole rules. A passing check is
+still not a guarantee of acceptance.
 
 ## Policy data and limitations
 
@@ -446,6 +551,9 @@ This is static triage, **not an App Review replacement**:
 - Built `.ipa`/`.aab` files, uploading, credentials, React Native/Flutter-specific
   layouts and exhaustive deprecated-API analysis are outside this first release.
 
+Berthlint is an independent project, not affiliated with or endorsed by Apple Inc.
+or Google LLC. App Store and Google Play names belong to their respective owners.
+
 ## Contributing
 
 Add pure rules under [src/rules](./src/rules), export them in the rule registry,
@@ -454,5 +562,11 @@ belong in [src/loaders](./src/loaders), with representative fixtures under
 [test/fixtures](./test/fixtures). Policy changes need source verification and a
 review-date update, not just a changed constant. Run `npm run check` before
 submitting changes.
+
+Report reproducible bugs or false positives using the repository's issue
+templates. Report vulnerabilities privately as described in
+[SECURITY.md](./SECURITY.md). See the [changelog](./CHANGELOG.md) and
+[release instructions](./docs/releasing.md) for distribution status and the
+provenance-enabled publication process.
 
 MIT licensed.

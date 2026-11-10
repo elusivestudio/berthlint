@@ -13,6 +13,12 @@ inputs:
   config:
     description: Optional config path relative to the mobile project
     default: ""
+  no-plugins:
+    description: Disable configured JavaScript plugins when scanning untrusted code
+    default: "false"
+  suppressions:
+    description: Optional suppressions path relative to the mobile project
+    default: ""
   ios-sdk-version:
     description: Declared iOS build SDK version (not the deployment target)
     default: ""
@@ -37,12 +43,16 @@ runs:
         BERTHLINT_PLATFORM: ${{ inputs.platform }}
         BERTHLINT_STRICT: ${{ inputs.strict }}
         BERTHLINT_CONFIG: ${{ inputs.config }}
+        BERTHLINT_NO_PLUGINS: ${{ inputs.no-plugins }}
+        BERTHLINT_SUPPRESSIONS: ${{ inputs.suppressions }}
         BERTHLINT_IOS_SDK: ${{ inputs.ios-sdk-version }}
         BERTHLINT_XCODE: ${{ inputs.xcode-version }}
       run: |
         args=("$BERTHLINT_PATH" --format github --platform "$BERTHLINT_PLATFORM")
         if [[ "$BERTHLINT_STRICT" == "true" ]]; then args+=(--strict); fi
         if [[ -n "$BERTHLINT_CONFIG" ]]; then args+=(--config "$BERTHLINT_CONFIG"); fi
+        if [[ "$BERTHLINT_NO_PLUGINS" == "true" ]]; then args+=(--no-plugins); fi
+        if [[ -n "$BERTHLINT_SUPPRESSIONS" ]]; then args+=(--suppressions "$BERTHLINT_SUPPRESSIONS"); fi
         if [[ -n "$BERTHLINT_IOS_SDK" ]]; then args+=(--ios-sdk-version "$BERTHLINT_IOS_SDK"); fi
         if [[ -n "$BERTHLINT_XCODE" ]]; then args+=(--xcode-version "$BERTHLINT_XCODE"); fi
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

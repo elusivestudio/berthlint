@@ -1,0 +1,15 @@
+name: Feature request
+description: Suggest a release check or workflow improvement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and proposed behavior
+      description: Include the affected platform and an example of the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Policy sources, alternatives and limitations
+      description: For store-policy rules, link official documentation and explain known exceptions.

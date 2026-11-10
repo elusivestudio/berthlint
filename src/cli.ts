@@ -9,6 +9,7 @@ import { loadProject } from "./loaders/index.ts";
 import { loadRules, runRules } from "./engine.ts";
 import { formatReport } from "./reporters.ts";
 import { releaseVersionSchema } from "./versions.ts";
+import { loadSuppressions } from "./suppressions.ts";
 
 const help = `berthlint - static mobile app release checks
 
@@ -22,6 +23,8 @@ Usage: berthlint [project-directory] [options]
   --ios-sdk-version <version>     Declared iOS build SDK (not deployment target)
   --xcode-version <version>       Declared Xcode release version
   --no-interactive                Never prompt for a missing iOS SDK version
+  --no-plugins                    Never import or execute configured plugins
+  --suppressions <file>            Suppressions path, relative to project directory
   --strict                       Fail on warnings as well as errors
   --list-rules                   List built-in and configured plugin rules
   --help, -h                     Show usage
@@ -46,6 +49,8 @@ async function main(): Promise<void> {
       "ios-sdk-version": { type: "string" },
       "xcode-version": { type: "string" },
       "no-interactive": { type: "boolean", default: false },
+      "no-plugins": { type: "boolean", default: false },
+      suppressions: { type: "string" },
       strict: { type: "boolean", default: false },
       "list-rules": { type: "boolean", default: false },
       help: { type: "boolean", short: "h" },
@@ -75,11 +80,12 @@ async function main(): Promise<void> {
   if (values["xcode-version"] !== undefined) {
     config.xcodeVersion = releaseVersionSchema.parse(values["xcode-version"]);
   }
-  const rules = await loadRules(root, config);
+  const rules = await loadRules(root, config, { plugins: !values["no-plugins"] });
   if (values["list-rules"]) {
     console.log(rules.map((rule) => `${rule.id}\t${rule.severity}\t${rule.title}`).join("\n"));
     return;
   }
+  const suppressions = await loadSuppressions(root, values.suppressions);
   const model = await loadProject(root, config, { platform });
   if (!config.iosSdkVersion && model.ios.length && format === "text" && !values.output
     && !values["no-interactive"] && !process.env.CI
@@ -97,7 +103,7 @@ async function main(): Promise<void> {
       terminal.close();
     }
   }
-  const report = runRules(model, rules, config, { platform });
+  const report = runRules(model, rules, config, { platform, suppressions });
   const output = formatReport(report, format, rules);
   if (values.output) await writeFile(resolve(values.output), `${output}\n`, "utf8");
   else console.log(output);
