@@ -39,7 +39,7 @@ afterEach(async () => {
 });
 
 export async function tempProject(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "shipcheck-test-"));
+  const root = await mkdtemp(join(tmpdir(), "berthlint-test-"));
   temporary.push(root);
   return root;
 }

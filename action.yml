@@ -1,4 +1,4 @@
-name: Shipcheck
+name: Berthlint
 description: Static native mobile release and fastlane metadata validation
 inputs:
   path:
@@ -25,7 +25,7 @@ runs:
     - uses: actions/setup-node@v4
       with:
         node-version: "24"
-    - name: Build Shipcheck
+    - name: Build Berthlint
       shell: bash
       run: |
         npm ci --include=dev --prefix "$GITHUB_ACTION_PATH"
@@ -33,16 +33,16 @@ runs:
     - name: Validate release
       shell: bash
       env:
-        SHIPCHECK_PATH: ${{ inputs.path }}
-        SHIPCHECK_PLATFORM: ${{ inputs.platform }}
-        SHIPCHECK_STRICT: ${{ inputs.strict }}
-        SHIPCHECK_CONFIG: ${{ inputs.config }}
-        SHIPCHECK_IOS_SDK: ${{ inputs.ios-sdk-version }}
-        SHIPCHECK_XCODE: ${{ inputs.xcode-version }}
+        BERTHLINT_PATH: ${{ inputs.path }}
+        BERTHLINT_PLATFORM: ${{ inputs.platform }}
+        BERTHLINT_STRICT: ${{ inputs.strict }}
+        BERTHLINT_CONFIG: ${{ inputs.config }}
+        BERTHLINT_IOS_SDK: ${{ inputs.ios-sdk-version }}
+        BERTHLINT_XCODE: ${{ inputs.xcode-version }}
       run: |
-        args=("$SHIPCHECK_PATH" --format github --platform "$SHIPCHECK_PLATFORM")
-        if [[ "$SHIPCHECK_STRICT" == "true" ]]; then args+=(--strict); fi
-        if [[ -n "$SHIPCHECK_CONFIG" ]]; then args+=(--config "$SHIPCHECK_CONFIG"); fi
-        if [[ -n "$SHIPCHECK_IOS_SDK" ]]; then args+=(--ios-sdk-version "$SHIPCHECK_IOS_SDK"); fi
-        if [[ -n "$SHIPCHECK_XCODE" ]]; then args+=(--xcode-version "$SHIPCHECK_XCODE"); fi
+        args=("$BERTHLINT_PATH" --format github --platform "$BERTHLINT_PLATFORM")
+        if [[ "$BERTHLINT_STRICT" == "true" ]]; then args+=(--strict); fi
+        if [[ -n "$BERTHLINT_CONFIG" ]]; then args+=(--config "$BERTHLINT_CONFIG"); fi
+        if [[ -n "$BERTHLINT_IOS_SDK" ]]; then args+=(--ios-sdk-version "$BERTHLINT_IOS_SDK"); fi
+        if [[ -n "$BERTHLINT_XCODE" ]]; then args+=(--xcode-version "$BERTHLINT_XCODE"); fi
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

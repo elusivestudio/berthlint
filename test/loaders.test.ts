@@ -224,18 +224,18 @@ describe("Gradle parsing", () => {
 describe("fastlane metadata", () => {
   it("loads standard iOS screenshots separately from metadata and strips a trailing line ending", async () => {
     const root = await tempProject();
-    await put(root, "fastlane/metadata/en-US/name.txt", "\uFEFFShipcheck\r\n");
+    await put(root, "fastlane/metadata/en-US/name.txt", "\uFEFFExample app\r\n");
     await put(root, "fastlane/screenshots/en-US/01.png", png(1179, 2556));
     const project = await loadProject(root, config);
     expect(project.locales).toHaveLength(1);
-    expect(project.locales[0]?.fields.name?.value).toBe("Shipcheck");
+    expect(project.locales[0]?.fields.name?.value).toBe("Example app");
     expect(project.locales[0]?.screenshots[0]).toMatchObject({
       file: "fastlane/screenshots/en-US/01.png", width: 1179, height: 2556, group: "iphone-dynamic-medium",
     });
   });
   it("discovers Android locale metadata and image groups without treating android as an iOS locale", async () => {
     const root = await tempProject();
-    await put(root, "fastlane/metadata/android/en-US/title.txt", "Shipcheck");
+    await put(root, "fastlane/metadata/android/en-US/title.txt", "Example app");
     await put(root, "fastlane/metadata/android/en-US/images/phoneScreenshots/01.png", png(320, 640));
     const project = await loadProject(root, config);
     expect(project.locales).toHaveLength(1);
@@ -273,9 +273,9 @@ describe("config and plugin loading", () => {
     const root = await tempProject();
     expect(await loadConfig(root)).toEqual(config);
     await expect(loadConfig(root, "missing.json")).rejects.toThrow("Cannot read config");
-    await put(root, "shipcheck.config.json", '{"typo": true}');
+    await put(root, "berthlint.config.json", '{"typo": true}');
     await expect(loadConfig(root)).rejects.toThrow("Invalid config");
-    await put(root, "shipcheck.config.json", "{");
+    await put(root, "berthlint.config.json", "{");
     await expect(loadConfig(root)).rejects.toThrow("Invalid config");
   });
   it("rejects unknown rule IDs", async () => {
@@ -295,10 +295,10 @@ describe("config and plugin loading", () => {
   });
   it("resolves npm plugins with import-only exports relative to the scanned project", async () => {
     const root = await tempProject();
-    await put(root, "node_modules/shipcheck-plugin-demo/package.json",
+    await put(root, "node_modules/berthlint-plugin-demo/package.json",
       JSON.stringify({ type: "module", exports: { import: "./index.js" } }));
-    await put(root, "node_modules/shipcheck-plugin-demo/index.js", "export const rules = [];");
-    expect(await loadRules(root, configSchema.parse({ plugins: ["shipcheck-plugin-demo"] }))).toHaveLength(builtInRules.length);
+    await put(root, "node_modules/berthlint-plugin-demo/index.js", "export const rules = [];");
+    expect(await loadRules(root, configSchema.parse({ plugins: ["berthlint-plugin-demo"] }))).toHaveLength(builtInRules.length);
   });
   it("loads CommonJS plugins", async () => {
     const root = await tempProject();

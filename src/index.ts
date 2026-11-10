@@ -1,6 +1,6 @@
 export type {
   AndroidApp, Finding, IosBundle, JsonObject, Location, MetadataField, Platform,
-  PrivacyManifest, ProjectModel, Report, Rule, RuleContext, RuleResult, Severity, ShipcheckPlugin,
+  PrivacyManifest, ProjectModel, Report, Rule, RuleContext, RuleResult, Severity, BerthlintPlugin,
   SourceFile, StoreLocale, Screenshot,
 } from "./types.ts";
 export type { Config } from "./config.ts";

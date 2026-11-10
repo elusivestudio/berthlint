@@ -51,7 +51,7 @@ export async function loadIos(
       const selected = configurations.find((v) => unquote(v.name) === config.configuration);
       if (!selected) {
         const available = configurations.map((configuration) => unquote(configuration.name)).filter(Boolean);
-        throw new Error(`${file}: target ${unquote(target.name)} has no ${config.configuration} configuration. Available configurations: ${available.join(", ")}. Select one with --configuration <name> or configuration in shipcheck.config.json. For repositories containing separate apps, scan the intended app subdirectory.`);
+        throw new Error(`${file}: target ${unquote(target.name)} has no ${config.configuration} configuration. Available configurations: ${available.join(", ")}. Select one with --configuration <name> or configuration in berthlint.config.json. For repositories containing separate apps, scan the intended app subdirectory.`);
       }
       const settings = { ...inherited, ...object(selected.buildSettings) };
       const sdk = unquote(settings.SDKROOT);

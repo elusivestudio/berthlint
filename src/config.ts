@@ -30,7 +30,7 @@ export const configSchema = z.strictObject({
 export type Config = z.infer<typeof configSchema>;
 
 export async function loadConfig(root: string, explicitPath?: string): Promise<Config> {
-  const file = resolve(root, explicitPath ?? "shipcheck.config.json");
+  const file = resolve(root, explicitPath ?? "berthlint.config.json");
   let text: string;
   try {
     text = await readFile(file, "utf8");

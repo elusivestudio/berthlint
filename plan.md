@@ -82,6 +82,9 @@ Before you build, verify the current store limits and the required-reason API li
 
 The original proposal above is preserved as the baseline.
 
+- The project has been renamed **Berthlint**; its canonical repository is
+  <https://github.com/elusivestudio/berthlint>. The original working name and
+  command/config references above describe the proposal at drafting time.
 - Implemented: native/fastlane loaders, pure rule engine, 32 built-in rules,
   configuration, plugins, all four reporters, GitHub Action and CI.
 - Completed the iOS gap: deployment targets, dated SDK/Xcode requirements,

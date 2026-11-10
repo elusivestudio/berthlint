@@ -102,7 +102,7 @@ export interface Rule {
   check(model: ProjectModel, context: RuleContext): readonly RuleResult[];
 }
 
-export interface ShipcheckPlugin {
+export interface BerthlintPlugin {
   rules: readonly Rule[];
 }
 

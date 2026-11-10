@@ -1,14 +1,14 @@
-# shipcheck
+# Berthlint
 
 Catch avoidable release problems in native iOS and Android apps **before building
-or uploading**. Shipcheck statically checks project files and fastlane store
+or uploading**. Berthlint statically checks project files and fastlane store
 metadata; it needs no store credentials, Xcode, Android SDK, or network access.
 
 **32 built-in rules** cover native project settings, privacy and permission
 declarations, and store listings. Extend checks with trusted JavaScript plugins.
-Shipcheck has not yet been published to npm.
+Berthlint has not yet been published to npm.
 
-![Shipcheck flags an outdated Android target SDK, then passes after it is updated.](./docs/assets/readme-demo.gif)
+![Berthlint flags an outdated Android target SDK, then passes after it is updated.](./docs/assets/readme-demo.gif)
 
 *Focused Android fixture: the demo checks one rule; a passing scan is not a
 guarantee of store acceptance.*
@@ -53,22 +53,22 @@ npm run dev -- /path/to/mobile-app --strict
 npm run check
 ```
 
-From a checkout, install the CLI locally with `npm link`, then run `shipcheck`
+From a checkout, install the CLI locally with `npm link`, then run `berthlint`
 inside a mobile repository. `npm pack` creates an installable package.
-The package is prepared for `npx shipcheck` once published; that command does not
+The package is prepared for `npx berthlint` once published; that command does not
 currently refer to this unpublished checkout.
 
 ## CLI
 
 ```sh
-shipcheck . --platform ios
-shipcheck . --format json
-shipcheck . --format sarif --output shipcheck.sarif
-shipcheck . --format github --strict
-shipcheck . --config config/release.json
-shipcheck . --platform ios --ios-sdk-version 26.0 --xcode-version 26.0
-shipcheck . --no-interactive
-shipcheck --list-rules
+berthlint . --platform ios
+berthlint . --format json
+berthlint . --format sarif --output berthlint.sarif
+berthlint . --format github --strict
+berthlint . --config config/release.json
+berthlint . --platform ios --ios-sdk-version 26.0 --xcode-version 26.0
+berthlint . --no-interactive
+berthlint --list-rules
 ```
 
 | Option | Default | Description |
@@ -76,7 +76,7 @@ shipcheck --list-rules
 | `--platform` | `all` | `ios`, `android`, or `all`; excludes the other platform's native loaders and metadata |
 | `--format` | `text` | `text`, `json`, `sarif` (2.1.0), or `github` workflow annotations |
 | `--output` | stdout | Report file, relative to the current working directory |
-| `--config` | `shipcheck.config.json` | Config path relative to the scanned project |
+| `--config` | `berthlint.config.json` | Config path relative to the scanned project |
 | `--ios-sdk-version` | config value | User-declared iOS SDK used to build, **not** the deployment target |
 | `--xcode-version` | config value | User-declared numeric Xcode release version |
 | `--no-interactive` | false | Disable the missing-SDK prompt |
@@ -170,7 +170,7 @@ Paths are relative to the scanned project. `androidDevice` accepts `phone`, `wea
 SDK minimum, not the existing-app availability threshold. Non-phone screenshot
 checks are explicitly skipped with a coverage warning.
 
-Xcode configuration names must match exactly; Shipcheck does not guess another
+Xcode configuration names must match exactly; Berthlint does not guess another
 configuration or silently skip targets when `Release` is absent. Override with
 `--configuration <name>` or the `configuration` setting. For example, Firefox
 iOS uses `Firefox` for its archive configuration. Its repository also contains
@@ -181,7 +181,7 @@ npm run dev -- /path/to/firefox-ios/firefox-ios --configuration Firefox
 ```
 
 For a reproducible git release comparison, set `"baselineTag": "v1.2.0"` instead
-of `previousAndroidVersionCode`. Shipcheck reads each module's Gradle file at that
+of `previousAndroidVersionCode`. Berthlint reads each module's Gradle file at that
 tag without checking it out. If both are set, `baselineTag` takes precedence.
 Missing tags, missing baseline files or unresolved baseline versions are execution
 errors. No tag is guessed automatically: a marketing version tag alone does not
@@ -196,12 +196,12 @@ The **build SDK** and **deployment target** are different. An app can be built w
 the iOS 26 SDK while supporting iOS 15 devices. Do not enter `15.0` as the SDK just
 because `IPHONEOS_DEPLOYMENT_TARGET` is `15.0`.
 
-Shipcheck compares the declared SDK and optional Xcode release against the dated
+Berthlint compares the declared SDK and optional Xcode release against the dated
 App Store upload requirements. CLI values override config values. These inputs
 describe your intended build; they do **not** prove which SDK/Xcode built an archive.
 `SDKROOT = iphoneos` and project migration markers are not used to guess versions.
 
-If a native iOS app is found and no SDK is supplied, Shipcheck prompts **only** for
+If a native iOS app is found and no SDK is supplied, Berthlint prompts **only** for
 a text scan with stdin, stdout and stderr attached to terminals, no `--output`,
 no nonempty `CI` environment variable, and no `--no-interactive`. Disabling
 `ios/sdk-requirements` also disables the prompt. Enter skips it; an invalid
@@ -266,7 +266,7 @@ graphemes may differ.
 ### Local listing completeness versus invalid values
 
 Absent metadata files and entirely absent local screenshot sets produce grouped
-`metadata/completeness` warnings, with all affected locales listed. Shipcheck
+`metadata/completeness` warnings, with all affected locales listed. Berthlint
 cannot inspect existing remote listings or prove which fallback the store will
 apply. It never silently fills values from another locale. Present blank required
 fields, overlong strings, invalid image sizes, excess counts and undersized
@@ -334,7 +334,7 @@ Package resolution is relative to the scanned project and honors ESM exports.
 
 ```js
 // tools/release-rules.mjs
-/** @type {import("shipcheck").ShipcheckPlugin} */
+/** @type {import("berthlint").BerthlintPlugin} */
 export default {
   rules: [{
     id: "team/support-url",
@@ -371,10 +371,10 @@ Treat the model as read-only and keep checks deterministic and filesystem-free.
 Run the built CLI directly in any CI with Node 22.18+.
 
 The included [composite action](./action.yml) builds this checkout and emits GitHub
-annotations. After checking out Shipcheck into a `tools/shipcheck` subdirectory:
+annotations. After checking out Berthlint into a `tools/berthlint` subdirectory:
 
 ```yaml
-- uses: ./tools/shipcheck
+- uses: ./tools/berthlint
   with:
     path: .
     strict: "true"
@@ -383,9 +383,9 @@ annotations. After checking out Shipcheck into a `tools/shipcheck` subdirectory:
     xcode-version: "26.0"
 ```
 
-Alternatively run `node /path/to/shipcheck/dist/cli.js . --format sarif --output
-shipcheck.sarif` and upload with `github/codeql-action/upload-sarif` using
-`sarif_file: shipcheck.sarif` and `security-events: write` permissions.
+Alternatively run `node /path/to/berthlint/dist/cli.js . --format sarif --output
+berthlint.sarif` and upload with `github/codeql-action/upload-sarif` using
+`sarif_file: berthlint.sarif` and `security-events: write` permissions.
 Run the upload step with `if: always()` because validation findings return 1.
 SARIF paths are relative to the scanned project; set the upload action's
 `checkout_path` accordingly if scanning a subdirectory.

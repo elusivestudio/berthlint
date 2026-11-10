@@ -40,7 +40,7 @@ export async function loadProject(
       diagnostics.push({
         ruleId: "system/analysis", severity: "warning", file: ".",
         message: `No ${platform} store metadata found; store listing checks were not run.`,
-        fix: `Add fastlane metadata or set metadata.${platform} in shipcheck.config.json.`,
+        fix: `Add fastlane metadata or set metadata.${platform} in berthlint.config.json.`,
         policyUrl: "https://docs.fastlane.tools/",
       });
     }
