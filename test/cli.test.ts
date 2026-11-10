@@ -145,7 +145,7 @@ describe("CLI end-to-end", () => {
       expect(result.status, result.stderr).toBe(0);
       if (format === "sarif") expect(JSON.parse(result.stdout).runs[0].results).toEqual([]);
       if (format === "github") expect(result.stdout.trim()).toBe("");
-      if (format === "text") expect(result.stdout).toContain("0 error(s), 0 warning(s), 0 note(s)");
+      if (format === "text") expect(result.stdout).toContain("0 errors | 0 warnings | 0 notes");
     }
     await put(root, "App.swift", "let obsolete = UIWebView()");
     const changed = run(root, "--format", "json", "--strict");
@@ -199,25 +199,37 @@ describe("CLI end-to-end", () => {
       Object.defineProperty(process.stdout, "isTTY", { value: true });
       Object.defineProperty(process.stderr, "isTTY", { value: true });
     `);
-    const scan = (args: string[], input: string, ci = "") => spawnSync(process.execPath, [
+    const scan = (args: string[], input: string, ci = "", noColor = false) => spawnSync(process.execPath, [
       "--import", preload, cli, resolve(fixtures, "ios"), ...args,
-    ], { encoding: "utf8", input, env: { ...process.env, CI: ci }, timeout: 10000 });
+    ], {
+      encoding: "utf8", input,
+      env: { ...process.env, CI: ci, ...(noColor ? { NO_COLOR: "1" } : {}) },
+      timeout: 10000,
+    });
     const accepted = scan([], "99.0\n");
     expect(accepted.status, accepted.stderr).toBe(0);
     expect(accepted.stderr).toContain("Which iOS SDK");
-    expect(accepted.stdout).not.toContain("[ios/sdk-coverage]");
+    expect(accepted.stdout).not.toContain("ios/sdk-coverage");
     const skipped = scan([], "\n");
     expect(skipped.status, skipped.stderr).toBe(0);
-    expect(skipped.stdout).toContain("[ios/sdk-coverage]");
+    expect(skipped.stdout).toContain("ios/sdk-coverage");
+    expect(skipped.stdout).toContain("\u001b[");
+    const plain = scan([], "\n", "", true);
+    expect(plain.status, plain.stderr).toBe(0);
+    expect(plain.stdout).not.toContain("\u001b[");
     expect(scan([], "not-a-version\n").status).toBe(2);
+    const reportFile = resolve(root, "report.txt");
     for (const args of [
       ["--format", "json"], ["--format", "sarif"], ["--format", "github"],
       ["--no-interactive"], ["--ios-sdk-version", "99.0"], ["--list-rules"],
-      ["--output", resolve(root, "report.txt")],
+      ["--output", reportFile],
     ]) {
       const result = scan(args, "");
       expect(result.status, result.stderr).toBe(0);
       expect(result.stderr).not.toContain("Which iOS SDK");
+      if (args[0] === "--output") {
+        expect(await readFile(reportFile, "utf8")).not.toContain("\u001b[");
+      }
     }
     expect(scan([], "", "true").stderr).not.toContain("Which iOS SDK");
   });

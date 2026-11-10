@@ -2,9 +2,8 @@
 
 ## Supported versions
 
-Berthlint is preparing its first npm release, `0.1.0`. No published version is
-currently supported; security fixes are made on the default branch. After
-publication, only the latest release will receive security fixes.
+Only the latest published release receives security fixes. Fixes are developed
+on the default branch before publication.
 
 ## Report a vulnerability
 

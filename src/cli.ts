@@ -104,7 +104,11 @@ async function main(): Promise<void> {
     }
   }
   const report = runRules(model, rules, config, { platform, suppressions });
-  const output = formatReport(report, format, rules);
+  const output = formatReport(report, format, rules, {
+    color: format === "text" && !values.output && process.stdout.isTTY
+      && !process.env.NO_COLOR && process.env.TERM !== "dumb",
+    ...(!values.output && process.stdout.isTTY ? { width: process.stdout.columns } : {}),
+  });
   if (values.output) await writeFile(resolve(values.output), `${output}\n`, "utf8");
   else console.log(output);
   process.exitCode = report.summary.error > 0 || (values.strict && report.summary.warning > 0) ? 1 : 0;

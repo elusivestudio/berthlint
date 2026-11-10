@@ -1,8 +1,23 @@
 # Changelog
 
-## Unreleased — preparing 0.1.0
+## 0.1.2 — 2026-11-10
 
-The package has not been published and no release tag has been created.
+### Changed
+
+- Text reports show findings in a terminal-width-aware table, with numbered fix
+  suggestions and policy links below it.
+- Interactive reports use red error labels, orange warnings and blue notes,
+  without changing the terminal background. Files, pipes and `NO_COLOR` retain
+  plain text; JSON, SARIF and GitHub annotations are unchanged.
+- Refreshed the README demo GIF and installation examples.
+
+## 0.1.1 — 2026-11-10
+
+### Fixed
+
+- Made CLI and installed-package version checks independent of a specific release.
+
+## 0.1.0 — 2026-11-10
 
 ### Added
 

@@ -1,6 +1,6 @@
 {
   "name": "berthlint",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Static release checks for native mobile apps and fastlane store metadata.",
   "type": "module",
   "license": "MIT",
