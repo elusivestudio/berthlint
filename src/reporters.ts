@@ -29,7 +29,7 @@ export function formatReport(report: Report, format: Format, rules: readonly Rul
       runs: [{
         tool: {
           driver: {
-            name: "shipcheck",
+            name: "berthlint",
             rules: used.map((id) => ({
               id,
               shortDescription: { text: byId.get(id)?.title ?? "Analysis coverage" },

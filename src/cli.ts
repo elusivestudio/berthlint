@@ -10,9 +10,9 @@ import { loadRules, runRules } from "./engine.ts";
 import { formatReport } from "./reporters.ts";
 import { releaseVersionSchema } from "./versions.ts";
 
-const help = `shipcheck - static mobile app release checks
+const help = `berthlint - static mobile app release checks
 
-Usage: shipcheck [project-directory] [options]
+Usage: berthlint [project-directory] [options]
 
   --format text|json|sarif|github  Output format (default: text)
   --output <file>                 Write report to a file instead of stdout
@@ -115,6 +115,6 @@ try {
     messages.push(errorMessage(cause));
     cause = cause instanceof Error ? cause.cause : undefined;
   }
-  console.error(`shipcheck: ${messages.join(": ")}`);
+  console.error(`berthlint: ${messages.join(": ")}`);
   process.exitCode = 2;
 }

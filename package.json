@@ -1,22 +1,22 @@
 {
-  "name": "shipcheck",
+  "name": "berthlint",
   "version": "0.1.0",
   "description": "Static release checks for native mobile apps and fastlane store metadata.",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/elusivestudio/shipcheck.git"
+    "url": "git+https://github.com/elusivestudio/berthlint.git"
   },
   "bugs": {
-    "url": "https://github.com/elusivestudio/shipcheck/issues"
+    "url": "https://github.com/elusivestudio/berthlint/issues"
   },
-  "homepage": "https://github.com/elusivestudio/shipcheck#readme",
+  "homepage": "https://github.com/elusivestudio/berthlint#readme",
   "engines": {
     "node": ">=22.18.0"
   },
   "bin": {
-    "shipcheck": "dist/cli.js"
+    "berthlint": "dist/cli.js"
   },
   "exports": {
     ".": {

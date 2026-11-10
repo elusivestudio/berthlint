@@ -15,8 +15,8 @@ function page(title: string, content: string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="generator" content="shipcheck rule metadata">
-<title>${escape(title)} | shipcheck</title>
+<meta name="generator" content="berthlint rule metadata">
+<title>${escape(title)} | berthlint</title>
 <style>
 :root{color-scheme:light dark;font:17px/1.6 system-ui,sans-serif}
 body{max-width:60rem;margin:3rem auto;padding:0 1.25rem}
@@ -27,11 +27,11 @@ footer{margin-top:3rem;border-top:1px solid #8886;padding-top:1rem}h1{line-heigh
 </style>
 </head>
 <body>
-<header><strong>shipcheck</strong> &mdash; static native mobile release checks</header>
+<header><strong>berthlint</strong> &mdash; static native mobile release checks</header>
 <main>${content}</main>
 <footer>Generated from rule metadata. Policy snapshot: ${escape(requirements.verifiedOn)}.
 Static checks do not guarantee store acceptance.
-<a href="https://github.com/elusivestudio/shipcheck">Source and usage</a>.</footer>
+<a href="https://github.com/elusivestudio/berthlint">Source and usage</a>.</footer>
 </body>
 </html>
 `;
@@ -43,7 +43,7 @@ const rows = builtInRules.map((rule) =>
   + `<td>${escape(rule.severity)}</td><td>${escape(rule.title)}</td></tr>`).join("\n");
 pages.set("docs/index.html", page("Rule reference", `
 <h1>Release checks, explained</h1>
-<p>Run <code>shipcheck</code> in a native iOS or Android repository to check release settings
+<p>Run <code>berthlint</code> in a native iOS or Android repository to check release settings
 and fastlane store metadata without building or uploading.</p>
 <p>Each finding includes a fix suggestion and a policy link. SDK and Xcode versions are
 user declarations, not proof of the toolchain actually used to build.</p>
@@ -69,7 +69,7 @@ default severity: <strong>${escape(rule.severity)}</strong></p>
 <p><a href="${escape(rule.policyUrl)}">${escape(rule.policyUrl)}</a></p>
 <h2>Configuration</h2>
 <p>Set a severity of <code>error</code>, <code>warning</code> or <code>note</code>,
-or disable the check in <code>shipcheck.config.json</code> when it is intentionally inapplicable:</p>
+or disable the check in <code>berthlint.config.json</code> when it is intentionally inapplicable:</p>
 <pre><code>${escape(config)}</code></pre>`));
 }
 

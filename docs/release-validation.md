@@ -26,7 +26,7 @@ The test suite checks every generated rule page and local navigation link.
 ## Public native-app smoke tests
 
 The inputs below are public, independently licensed projects. Their code is not
-copied into Shipcheck. The SDK/Xcode arguments below are test declarations, not
+copied into Berthlint. The SDK/Xcode arguments below are test declarations, not
 claims about the apps' actual release toolchains.
 
 | Project | Pinned revision | Observed result |
@@ -46,9 +46,9 @@ git -C IceCubesApp sparse-checkout set IceCubesApp.xcodeproj IceCubesApp \
 git clone https://github.com/zhanghai/MaterialFiles.git
 git -C MaterialFiles checkout --detach 93c333960aa897836ba3f215a19d0cb0de494db1
 
-node /path/to/shipcheck/dist/cli.js IceCubesApp --platform ios \
+node /path/to/berthlint/dist/cli.js IceCubesApp --platform ios \
   --ios-sdk-version 26.0 --xcode-version 26.0 --format json --output icecubes.json
-node /path/to/shipcheck/dist/cli.js MaterialFiles --platform android \
+node /path/to/berthlint/dist/cli.js MaterialFiles --platform android \
   --format json --output materialfiles.json
 ```
 

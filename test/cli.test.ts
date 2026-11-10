@@ -13,7 +13,7 @@ function run(...args: string[]) {
 
 describe("CLI end-to-end", () => {
   it("shows help, version and rules without requiring a mobile project", () => {
-    expect(run("--help").stdout).toContain("Usage: shipcheck");
+    expect(run("--help").stdout).toContain("Usage: berthlint");
     expect(run("--version").stdout.trim()).toBe("0.1.0");
     const listed = run("--list-rules");
     expect(listed.status).toBe(0);
@@ -32,7 +32,7 @@ describe("CLI end-to-end", () => {
     const file = "App.xcodeproj/project.pbxproj";
     const pbx = await readFile(resolve(fixtures, "xcode", file), "utf8");
     await put(root, file, pbx.replaceAll("Release", "Firefox"));
-    await put(root, "shipcheck.config.json", JSON.stringify({ configuration: "Other" }));
+    await put(root, "berthlint.config.json", JSON.stringify({ configuration: "Other" }));
     const missing = run(root, "--format", "json");
     expect(missing.status).toBe(2);
     expect(missing.stderr).toContain("Available configurations: Firefox");
@@ -58,9 +58,9 @@ describe("CLI end-to-end", () => {
     expect(JSON.parse(advisory.stdout).findings.every((finding: { ruleId: string }) =>
       finding.ruleId === "metadata/completeness")).toBe(true);
     expect(run(root, "--strict").status).toBe(1);
-    await put(root, "shipcheck.config.json", JSON.stringify({ rules: { "metadata/completeness": "error" } }));
+    await put(root, "berthlint.config.json", JSON.stringify({ rules: { "metadata/completeness": "error" } }));
     expect(run(root, "--format", "json").status).toBe(1);
-    await put(root, "shipcheck.config.json", "{}");
+    await put(root, "berthlint.config.json", "{}");
     await put(root, "fastlane/metadata/en-US/keywords.txt", "é".repeat(51));
     const invalid = run(root, "--format", "json");
     expect(invalid.status, invalid.stderr).toBe(1);
@@ -73,7 +73,9 @@ describe("CLI end-to-end", () => {
     const result = run(resolve(fixtures, "ios"), "--format", "sarif", "--output", output);
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toBe("");
-    expect(JSON.parse(await readFile(output, "utf8")).version).toBe("2.1.0");
+    const sarif = JSON.parse(await readFile(output, "utf8"));
+    expect(sarif.version).toBe("2.1.0");
+    expect(sarif.runs[0].tool.driver.name).toBe("berthlint");
   });
   it.each([
     ["--format", "xml"], ["--platform", "windows"], ["--unknown"],
@@ -82,7 +84,7 @@ describe("CLI end-to-end", () => {
     const result = run(...args);
     expect(result.status).toBe(2);
     expect(result.stdout).toBe("");
-    expect(result.stderr).toContain("shipcheck:");
+    expect(result.stderr).toContain("berthlint:");
   });
   it("returns 2 for an unsupported or missing requested platform", async () => {
     expect(run(await tempProject()).status).toBe(2);
@@ -91,7 +93,7 @@ describe("CLI end-to-end", () => {
   it("loads plugins and emits plugin findings through the CLI", async () => {
     const root = await tempProject();
     await cp(resolve(fixtures, "ios"), root, { recursive: true });
-    await put(root, "shipcheck.config.json", JSON.stringify({ plugins: ["./plugin.mjs"] }));
+    await put(root, "berthlint.config.json", JSON.stringify({ plugins: ["./plugin.mjs"] }));
     await put(root, "plugin.mjs", `export const rules = [{
       id: "team/release", title: "Team release", platform: "all", severity: "error",
       fix: "Do the release check.", policyUrl: "https://example.com",
@@ -104,7 +106,7 @@ describe("CLI end-to-end", () => {
   it("uses CLI SDK overrides instead of config and rejects invalid toolchain declarations", async () => {
     const root = await tempProject();
     await cp(resolve(fixtures, "ios"), root, { recursive: true });
-    await put(root, "shipcheck.config.json", JSON.stringify({ iosSdkVersion: "1.0", xcodeVersion: "1.0" }));
+    await put(root, "berthlint.config.json", JSON.stringify({ iosSdkVersion: "1.0", xcodeVersion: "1.0" }));
     const result = run(root, "--ios-sdk-version", "99.0", "--xcode-version", "99.0", "--format", "json");
     expect(result.status, result.stderr).toBe(0);
     expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "ios/sdk-requirements")).toBe(false);
