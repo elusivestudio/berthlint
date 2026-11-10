@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
+import packageJson from "../package.json" with { type: "json" };
 import { put, tempProject } from "./helpers.ts";
 
 describe("composite Action arguments", () => {
@@ -39,9 +40,9 @@ describe("composite Action arguments", () => {
 
 describe("publish workflow release guard", () => {
   it.each([
-    ["refs/tags/v0.1.0", 0],
+    [`refs/tags/v${packageJson.version}`, 0],
     ["refs/heads/main", 1],
-    ["refs/tags/v0.0.9", 1],
+    [`refs/tags/v${packageJson.version}-mismatch`, 1],
   ])("requires the manifest version tag: %s", async (ref, status) => {
     const workflow = await readFile(new URL("../.github/workflows/publish.yml", import.meta.url), "utf8");
     const script = workflow.match(/<<'JS'\n([\s\S]*?)^\s+JS$/m)?.[1];
@@ -50,6 +51,6 @@ describe("publish workflow release guard", () => {
       encoding: "utf8", env: { ...process.env, GITHUB_REF: ref },
     });
     expect(result.status, result.stderr).toBe(status);
-    if (status !== 0) expect(result.stderr).toContain("Select the v0.1.0 tag");
+    if (status !== 0) expect(result.stderr).toContain(`Select the v${packageJson.version} tag`);
   });
 });

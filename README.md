@@ -7,13 +7,13 @@ metadata; it needs no store credentials, Xcode, Android SDK, or network access.
 **32 built-in rules** cover native project settings, privacy and permission
 declarations, and store listings. Extend checks with trusted JavaScript plugins.
 
-[Version 0.1.0 is available on npm](https://www.npmjs.com/package/berthlint/v/0.1.0),
+[Version 0.1.2 on npm](https://www.npmjs.com/package/berthlint/v/0.1.2),
 published with build provenance from GitHub Actions.
 
-![Berthlint flags an outdated Android target SDK, then passes after it is updated.](./docs/assets/readme-demo.gif)
+![Berthlint displays errors, warnings and notes in a table, then reports no findings after the release settings are corrected.](./docs/assets/readme-demo.gif)
 
-*Focused Android fixture: the demo checks one rule; a passing scan is not a
-guarantee of store acceptance.*
+*Focused Android fixture: the demo enables target SDK, version name and release
+baseline checks only. A passing scan is not a guarantee of store acceptance.*
 
 ## What it checks
 
@@ -46,13 +46,13 @@ Requires Node.js **22.18+** (Node 24 LTS recommended) and npm.
 Run a pinned version without a local checkout:
 
 ```sh
-npx berthlint@0.1.0 /path/to/mobile-app
+npx berthlint@0.1.2 /path/to/mobile-app
 ```
 
 Or install the CLI globally:
 
 ```sh
-npm install --global berthlint@0.1.0
+npm install --global berthlint@0.1.2
 berthlint /path/to/mobile-app
 ```
 
@@ -60,7 +60,7 @@ For a reproducible project or CI dependency, install it locally and commit your
 lockfile:
 
 ```sh
-npm install --save-dev --save-exact berthlint@0.1.0
+npm install --save-dev --save-exact berthlint@0.1.2
 npx berthlint . --strict --no-interactive --no-plugins
 ```
 
@@ -133,6 +133,12 @@ Exit codes: **0** no errors, **1** validation errors (or warnings in strict mode
 **2** execution failure, including malformed inputs, unknown rules, broken plugins
 and unsupported/empty projects. Execution failures go to stderr, not into a
 success-shaped JSON report. Notes never cause a failure.
+
+Text output presents findings in a wrapped table and uses severity colors when
+written to an interactive terminal. Colors are disabled for redirected output
+and when `NO_COLOR` is set. Error labels are red, warnings orange and notes blue;
+the report never sets a background color. Fix suggestions and policy links follow
+the table.
 
 JSON output is `{ schemaVersion: 1, findings: [...], summary: { error, warning, note } }`.
 Each finding includes a stable `ruleId`, severity, project-relative file, optional
@@ -471,7 +477,7 @@ The included [composite action](./action.yml) builds its own tagged source and
 emits GitHub annotations. After checking out your mobile app:
 
 ```yaml
-- uses: elusivestudio/berthlint@v0.1.0
+- uses: elusivestudio/berthlint@v0.1.2
   with:
     path: .
     strict: "true"
