@@ -5,9 +5,17 @@ import packageJson from "../package.json" with { type: "json" };
 import { put, tempProject } from "./helpers.ts";
 
 describe("composite Action arguments", () => {
+  it("installs the published runtime package and disables plugins by default", async () => {
+    const action = await readFile(new URL("../action.yml", import.meta.url), "utf8");
+    expect(action).toContain('  no-plugins:\n    description: Disable configured JavaScript plugins when scanning untrusted code\n    default: "true"');
+    expect(action).toContain("npm install --prefix \"$RUNNER_TEMP/berthlint\" --no-save --no-package-lock --ignore-scripts");
+    expect(action).not.toContain("npm ci --include=dev");
+    expect(action).not.toContain("npm run build");
+  });
+
   it.each([true, false])("forwards plugin opt-out %s and exact suppression paths safely", async (disabled) => {
     const root = await tempProject();
-    await put(root, "dist/cli.js", "console.log(JSON.stringify(process.argv.slice(2)))");
+    await put(root, "berthlint/node_modules/berthlint/dist/cli.js", "console.log(JSON.stringify(process.argv.slice(2)))");
     const action = await readFile(new URL("../action.yml", import.meta.url), "utf8");
     const block = action.split("run: |").at(-1);
     if (!block) throw new Error("Missing Action scan command");
@@ -17,6 +25,7 @@ describe("composite Action arguments", () => {
       env: {
         ...process.env,
         GITHUB_ACTION_PATH: root,
+        RUNNER_TEMP: root,
         BERTHLINT_PATH: "mobile app",
         BERTHLINT_PLATFORM: "ios",
         BERTHLINT_STRICT: "true",

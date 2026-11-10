@@ -71,9 +71,8 @@ describe("iOS deployment targets", () => {
       { file: "App.xcodeproj/project.pbxproj", message: expect.stringContaining("exceeds declared iOS SDK") },
     ]);
   });
-  it("only enforces a documented Xcode family's deployment support floor", () => {
-    expect(check("deployment-target", project("14.9"), { xcodeVersion: "26.1" })).toHaveLength(1);
-    expect(check("deployment-target", project("15"), { xcodeVersion: "26.1" })).toEqual([]);
+  it("does not enforce deployment floors without verified Xcode support data", () => {
+    expect(check("deployment-target", project("14.9"), { xcodeVersion: "26.1" })).toEqual([]);
     expect(check("deployment-target", project("14.9"), { xcodeVersion: "99" })).toEqual([]);
     expect(check("deployment-target", project("14.9"))).toEqual([]);
     expect(check("deployment-target", project("15.0"), { xcodeVersion: "27.2" })).toEqual([]);
@@ -96,6 +95,6 @@ describe("iOS deployment targets", () => {
   it("does not claim undocumented compatibility checks were performed", () => {
     expect(check("deployment-target-coverage", project("15.0"))).toHaveLength(1);
     expect(check("deployment-target-coverage", project("15.0"), { xcodeVersion: "99" })).toHaveLength(1);
-    expect(check("deployment-target-coverage", project("15.0"), { xcodeVersion: "26.0" })).toEqual([]);
+    expect(check("deployment-target-coverage", project("15.0"), { xcodeVersion: "26.0" })).toHaveLength(1);
   });
 });

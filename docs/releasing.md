@@ -1,7 +1,7 @@
 # Releasing Berthlint
 
 Use the reviewed package version for the release tag and npm publication. The
-commands below show the `0.1.2` release.
+commands below show the `0.1.3` release.
 
 ## Validate
 
@@ -16,7 +16,7 @@ npm publish --dry-run
 Review the tarball contents, policy verification dates, changelog, security
 policy and README. Never include credentials or private app scan inputs.
 
-## Publish 0.1.2 with provenance
+## Publish 0.1.3 with provenance
 
 Provenance is generated in supported CI, not from an ordinary local `npm publish`.
 The manual [publish workflow](../.github/workflows/publish.yml) uses GitHub Actions
@@ -34,23 +34,23 @@ supports it.
    default branch. Before tagging, update the README, security policy and
    changelog for the intended released state. Do not claim publication until the
    registry confirms it.
-3. Create and push a reviewed `v0.1.2` tag matching the package version.
+3. Create and push a reviewed `v0.1.3` tag matching the package version.
 4. Dispatch the workflow against that tag (the workflow must also exist on the
    default branch):
 
    ```sh
-   gh workflow run publish.yml --ref v0.1.2
+   gh workflow run publish.yml --ref v0.1.3
    ```
 
 5. Confirm the workflow succeeds, then verify the registry entry and provenance:
 
    ```sh
-   npm view berthlint@0.1.2 version dist.attestations
-   npx --yes berthlint@0.1.2 --version
+   npm view berthlint@0.1.3 version dist.attestations
+   npx --yes berthlint@0.1.3 --version
    ```
 
 6. Confirm the tagged Action can scan a consumer fixture before announcing it.
-   Consumers can then use `elusivestudio/berthlint@v0.1.2` without a separate tool
+   Consumers can then use `elusivestudio/berthlint@v0.1.3` without a separate tool
    checkout, or pin the reviewed tag's full commit SHA.
 
 Publishing and tagging are maintainer actions, not side effects of local

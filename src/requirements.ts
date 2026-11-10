@@ -1,6 +1,8 @@
 import data from "./requirements/store.v1.json" with { type: "json" };
 
-export const requirements = data;
+type IosToolchain = { xcodeMajor: number; minimumDeploymentTarget: string };
+const iosToolchains: IosToolchain[] = data.iosToolchains;
+export const requirements = { ...data, iosToolchains };
 
 export function iosScreenshotGroup(width: number, height: number): string | undefined {
   const short = Math.min(width, height);

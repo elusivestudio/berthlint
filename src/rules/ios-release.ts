@@ -35,7 +35,7 @@ export const iosReleaseRules: Rule[] = [
   },
   {
     id: "ios/deployment-target", title: "iOS deployment target compatibility", platform: "ios", severity: "error",
-    description: "The minimum supported OS is distinct from the build SDK. Targets must be numeric, meet the dated App Store OS minimum, not exceed the declared SDK, and meet the documented deployment floor for a known declared Xcode family.",
+    description: "The minimum supported OS is distinct from the build SDK. Targets must be numeric, meet the dated App Store OS minimum, and not exceed the declared SDK. Xcode deployment floors are checked only after official support data is verified.",
     policyUrl: requirements.sources.xcodeSupport,
     fix: "Set IPHONEOS_DEPLOYMENT_TARGET to a supported OS version in the selected build configuration. Do not raise it to the SDK version unnecessarily; confirm xcconfig and CI overrides.",
     check: (model, context) => model.ios.flatMap((bundle) => {
@@ -72,7 +72,7 @@ export const iosReleaseRules: Rule[] = [
     id: "ios/deployment-target-coverage", title: "iOS deployment target coverage", platform: "ios", severity: "note",
     description: "Missing or unresolved deployment settings cannot be certified from project text. External xcconfig files, generated settings and build overrides need independent verification.",
     policyUrl: requirements.sources.xcodeSupport,
-    fix: "Declare xcodeVersion (or --xcode-version) for a documented family. Resolve IPHONEOS_DEPLOYMENT_TARGET using Xcode build settings; standalone plists may supply MinimumOSVersion.",
+    fix: "Resolve IPHONEOS_DEPLOYMENT_TARGET using Xcode build settings; standalone plists may supply MinimumOSVersion. Only verified Xcode deployment ranges are checked.",
     check(model, context) {
       const groups = new Map<string, { file: string; reason: string; targets: string[] }>();
       const add = (file: string, reason: string, target: string): void => {

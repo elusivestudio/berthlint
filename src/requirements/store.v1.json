@@ -42,10 +42,7 @@
     "minimumSdk": "26.0",
     "minimumXcode": "26.0"
   },
-  "iosToolchains": [
-    { "xcodeMajor": 26, "minimumDeploymentTarget": "15.0" },
-    { "xcodeMajor": 27, "minimumDeploymentTarget": "15.0" }
-  ],
+  "iosToolchains": [],
   "iosDeployment": {
     "effectiveOn": "2026-09-09",
     "minimum": "13.0"
