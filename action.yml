@@ -15,7 +15,7 @@ inputs:
     default: ""
   no-plugins:
     description: Disable configured JavaScript plugins when scanning untrusted code
-    default: "false"
+    default: "true"
   suppressions:
     description: Optional suppressions path relative to the mobile project
     default: ""
@@ -28,14 +28,14 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: "24"
-    - name: Build Berthlint
+    - name: Install Berthlint
       shell: bash
       run: |
-        npm ci --include=dev --prefix "$GITHUB_ACTION_PATH"
-        npm run build --prefix "$GITHUB_ACTION_PATH"
+        version="$(node -p "require(process.env.GITHUB_ACTION_PATH + '/package.json').version")"
+        npm install --prefix "$RUNNER_TEMP/berthlint" --no-save --no-package-lock --ignore-scripts "berthlint@$version"
     - name: Validate release
       shell: bash
       env:
@@ -55,4 +55,4 @@ runs:
         if [[ -n "$BERTHLINT_SUPPRESSIONS" ]]; then args+=(--suppressions "$BERTHLINT_SUPPRESSIONS"); fi
         if [[ -n "$BERTHLINT_IOS_SDK" ]]; then args+=(--ios-sdk-version "$BERTHLINT_IOS_SDK"); fi
         if [[ -n "$BERTHLINT_XCODE" ]]; then args+=(--xcode-version "$BERTHLINT_XCODE"); fi
-        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"
+        node "$RUNNER_TEMP/berthlint/node_modules/berthlint/dist/cli.js" "${args[@]}"

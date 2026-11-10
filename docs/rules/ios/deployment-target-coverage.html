@@ -24,7 +24,7 @@ default severity: <strong>note</strong></p>
 <h2>Why this matters and what is checked</h2>
 <p>Missing or unresolved deployment settings cannot be certified from project text. External xcconfig files, generated settings and build overrides need independent verification.</p>
 <h2>How to fix it</h2>
-<p>Declare xcodeVersion (or --xcode-version) for a documented family. Resolve IPHONEOS_DEPLOYMENT_TARGET using Xcode build settings; standalone plists may supply MinimumOSVersion.</p>
+<p>Resolve IPHONEOS_DEPLOYMENT_TARGET using Xcode build settings; standalone plists may supply MinimumOSVersion. Only verified Xcode deployment ranges are checked.</p>
 <h2>Policy and reference</h2>
 <p><a href="https://developer.apple.com/support/xcode/">https://developer.apple.com/support/xcode/</a></p>
 <h2>Configuration</h2>

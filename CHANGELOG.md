@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.3 — 2026-11-10
+
+### Changed
+
+- Reworked the README for npm users and moved detailed usage and limitations
+  into the shipped documentation.
+- Updated the composite Action to install the published runtime package, pin
+  setup-node, and disable plugins by default.
+- Added npm search keywords and package author metadata.
+- Removed unverified Xcode deployment floors from the policy snapshot.
+
+### Fixed
+
+- Ensure clean builds do not leave stale source maps in the published package.
+- Verify the packaged CLI shebang in the package smoke test.
+
 ## 0.1.2 — 2026-11-10
 
 ### Changed

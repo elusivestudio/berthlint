@@ -20,6 +20,11 @@ try {
     cwd: consumer, stdio: "inherit",
   });
   const cli = join(consumer, "node_modules/berthlint/dist/cli.js");
+  const distFiles = await readdir(join(consumer, "node_modules/berthlint/dist"));
+  if (distFiles.some((file) => file.endsWith(".map"))) throw new Error("Package contains source maps");
+  if (!(await readFile(cli, "utf8")).startsWith("#!/usr/bin/env node\n")) {
+    throw new Error("Packaged CLI is missing its Node.js shebang");
+  }
   const version = execFileSync(process.execPath, [cli, "--version"], { cwd: consumer, encoding: "utf8" }).trim();
   const pkg: unknown = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
   if (version !== z.object({ version: z.string() }).parse(pkg).version) throw new Error("Installed CLI version mismatch");
