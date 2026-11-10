@@ -23,6 +23,56 @@ The initial generated site was also checked in a browser: 31 rule links, SDK rul
 its configuration example and policy link, and navigation back to the index.
 The test suite checks every generated rule page and local navigation link.
 
+## Release-readiness rerun (2026-11-10)
+
+The Berthlint rename was checked across package metadata, the lockfile, CLI,
+Action, workflows, SARIF and generated pages. `npm run docs` regenerated all
+33 pages. Old branding is retained only in explicitly historical captures.
+
+Release validation passed source/test type-checking, the test suite,
+documentation freshness, compilation, the packed-consumer smoke test and
+`npm publish --dry-run --provenance --access public`. This was a dry run, not
+publication or verification of a generated provenance attestation. npm
+authentication, actual publication and release tagging remain maintainer steps.
+New tests cover plugin import prevention, exact-match suppressions, report
+counts/exit codes, Action argument forwarding and the release-tag guard.
+
+Three available public app checkouts were rescanned read-only with Node
+**24.16.0** at **2026-11-10 01:14 UTC**, policy snapshot **2026-11-10**:
+
+| Input | Commit | Errors / warnings / notes | Exit |
+| --- | --- | --- | --- |
+| IceCubesApp | `98098b9c4b5928f89f338203193c2bf40ab7f38c` | 1 / 4 / 1 | 1 |
+| Material Files | `93c333960aa897836ba3f215a19d0cb0de494db1` | 0 / 19 / 1 | 0 |
+| Firefox iOS | `13c95cb20e4c9570af2175529802f597cf010f40` | 0 / 5 / 2 | 0 |
+
+All three input worktrees were clean. The scanner used the **uncommitted working
+tree based on `c13e5b0dab97ace02d119a504dfcd1df1649680b`**; that commit alone does
+not reproduce these scanner changes. It was built with `npm run build`.
+No input build scripts, store credentials or plugins were used. A trusted
+external config contained `{}` and a trusted external suppressions file contained
+`{"schemaVersion":1,"suppressions":[]}`. No Xcode version or Android baseline was
+declared. Commands, replacing the local paths, were:
+
+```sh
+node dist/cli.js /path/to/IceCubesApp --platform ios --ios-sdk-version 27.0 \
+  --no-plugins --no-interactive --config /trusted/empty-config.json \
+  --suppressions /trusted/empty-suppressions.json --format json --output icecubes.json
+node dist/cli.js /path/to/MaterialFiles --platform android \
+  --no-plugins --no-interactive --config /trusted/empty-config.json \
+  --suppressions /trusted/empty-suppressions.json --format json --output materialfiles.json
+node dist/cli.js /path/to/firefox-ios/firefox-ios --platform ios \
+  --configuration Firefox --ios-sdk-version 27.0 --no-plugins --no-interactive \
+  --config /trusted/empty-config.json --suppressions /trusted/empty-suppressions.json \
+  --format json --output firefox.json
+```
+
+JSON reports and invocation records were retained outside the repository in the
+session workspace. These are behavior/regression checks, not a new independent
+false-positive assessment or store-acceptance claim. The Ice Cubes missing
+privacy-manifest result still needs build-resource review; other existing
+findings and coverage limits remain advisory as described below.
+
 ## Public native-app smoke tests
 
 The inputs below are public, independently licensed projects. Their code is not

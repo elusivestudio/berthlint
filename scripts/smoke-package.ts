@@ -25,7 +25,7 @@ try {
   if (version !== z.object({ version: z.string() }).parse(pkg).version) throw new Error("Installed CLI version mismatch");
 
   const scan = spawnSync(process.execPath, [
-    cli, join(root, "test/fixtures/ios"), "--format", "json", "--ios-sdk-version", "26.0",
+    cli, join(root, "test/fixtures/ios"), "--format", "json", "--ios-sdk-version", "26.0", "--no-plugins",
   ], { cwd: consumer, encoding: "utf8" });
   if (scan.error) throw scan.error;
   if (scan.status !== 0 || scan.stderr) throw new Error(`Installed CLI scan failed (${scan.status}): ${scan.stderr}`);
@@ -34,12 +34,19 @@ try {
 
   const imported = execFileSync(process.execPath, [
     "--input-type=module", "-e",
-    "import { builtInRules, configSchema, requirements } from 'berthlint';"
-    + "console.log(JSON.stringify({ count: builtInRules.length, sdk: configSchema.parse({iosSdkVersion:'26.0'}).iosSdkVersion, schemaVersion: requirements.schemaVersion }));",
+    "import { builtInRules, configSchema, requirements, loadSuppressions, suppressionsSchema } from 'berthlint';"
+    + "console.log(JSON.stringify({ count: builtInRules.length, sdk: configSchema.parse({iosSdkVersion:'26.0'}).iosSdkVersion,"
+    + " schemaVersion: requirements.schemaVersion, suppressions: await loadSuppressions('.'),"
+    + " suppressionSchema: suppressionsSchema.parse({schemaVersion:1,suppressions:[]}).schemaVersion }));",
   ], { cwd: consumer, encoding: "utf8" });
-  z.object({ count: z.number().positive(), sdk: z.literal("26.0"), schemaVersion: z.literal(1) })
+  z.object({
+    count: z.number().positive(), sdk: z.literal("26.0"), schemaVersion: z.literal(1),
+    suppressions: z.array(z.unknown()).length(0), suppressionSchema: z.literal(1),
+  })
     .parse(JSON.parse(imported));
   await readFile(join(consumer, "node_modules/berthlint/docs/index.html"), "utf8");
+  await readFile(join(consumer, "node_modules/berthlint/SECURITY.md"), "utf8");
+  await readFile(join(consumer, "node_modules/berthlint/CHANGELOG.md"), "utf8");
   console.log(`Package ${version}: installed CLI, JSON scan, public ESM exports, requirements data and docs passed.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

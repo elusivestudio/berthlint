@@ -2,7 +2,7 @@
 
 [All scan evidence](./README.md)
 
-| Report prepared | Shipcheck | Device class | Version baseline |
+| Report prepared | Berthlint | Device class | Version baseline |
 | --- | --- | --- | --- |
 | 2026-11-10 | 0.1.0, local development source | Phone (default) | Not supplied |
 
@@ -27,7 +27,7 @@ file-manager functionality may intentionally need these capabilities.
 
 ## Reproduce
 
-From the Shipcheck checkout, replacing the placeholder with your clone location:
+From the Berthlint checkout, replacing the placeholder with your clone location:
 
 ```sh
 npm run dev -- /path/to/MaterialFiles --no-interactive

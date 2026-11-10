@@ -1,4 +1,4 @@
-# Shipcheck: real-world scan evidence
+# Berthlint: real-world scan evidence
 
 Five user-supplied native-app scan captures, organized for review on 2026-11-10.
 These demonstrate scanner behavior on real projects, not app certification,
@@ -6,7 +6,9 @@ confirmed upstream defects, or endorsement by the projects.
 
 ## Results
 
-All captures identify Shipcheck **0.1.0 running local development source**.
+All captures identify **0.1.0 running local development source** under the former
+Shipcheck name. Historical CLI output below each report is deliberately unchanged;
+old package/config names there are evidence, not current installation instructions.
 The version alone does not identify an immutable tool revision.
 
 | Project | Platform | Configuration | Errors | Warnings | Notes | Evidence |
@@ -38,13 +40,13 @@ separately in [release validation](../docs/release-validation.md).
 
 ## Recommended presentation
 
-Use **"Shipcheck: real-world native-app scan evidence"** as the collection title.
+Use **"Berthlint: real-world native-app scan evidence"** as the collection title.
 Describe individual reports as **"[Project]: [platform] static scan evidence"**,
 not audits, certifications or vulnerability reports.
 
 Suggested public summary:
 
-> Shipcheck was exercised against five open-source native mobile projects.
+> Berthlint was exercised against five open-source native mobile projects.
 > These captures show source-level release checks, actionable review hints and
 > explicit analysis limits. They do not establish store acceptance or defects
 > in the published applications.

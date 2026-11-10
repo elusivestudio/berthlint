@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { Config } from "./config.ts";
 import type { Finding, Platform, ProjectModel, Report, Rule, RuleContext, Severity } from "./types.ts";
 import { builtInRules } from "./rules/index.ts";
+import { suppressionKey, suppressionsSchema } from "./suppressions.ts";
+import type { Suppression } from "./suppressions.ts";
 
 const ruleSchema = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/),
@@ -24,9 +26,11 @@ const locationsSchema = z.array(z.object({
   policyUrl: z.url().optional(),
 }));
 
-export async function loadRules(root: string, config: Config): Promise<readonly Rule[]> {
+export async function loadRules(
+  root: string, config: Config, options: { plugins?: boolean } = {},
+): Promise<readonly Rule[]> {
   const rules = [...builtInRules];
-  for (const specifier of config.plugins) {
+  for (const specifier of options.plugins === false ? [] : config.plugins) {
     const url = resolveModule(specifier, pathToFileURL(resolve(root, "package.json")).href);
     const module: unknown = await import(url);
     const plugin = z.object({ rules: z.array(ruleSchema) }).safeParse(
@@ -53,8 +57,16 @@ function configuredSeverity(id: string, fallback: Severity, config: Config): Sev
 
 export function runRules(
   model: ProjectModel, rules: readonly Rule[], config: Config,
-  options: { platform?: Platform; now?: Date } = {},
+  options: { platform?: Platform; now?: Date; suppressions?: readonly Suppression[] } = {},
 ): Report {
+  const suppressions = suppressionsSchema.parse({
+    schemaVersion: 1, suppressions: options.suppressions ?? [],
+  }).suppressions;
+  const knownRules = new Set(["system/analysis", ...rules.map((rule) => rule.id)]);
+  for (const entry of suppressions) {
+    if (!knownRules.has(entry.ruleId)) throw new Error(`Unknown suppressed rule: ${entry.ruleId}`);
+  }
+  const suppressed = new Set(suppressions.map(suppressionKey));
   const platform = options.platform ?? "all";
   const selected: ProjectModel = platform === "all" ? model : {
     ...model,
@@ -95,7 +107,8 @@ export function runRules(
   findings.sort((a, b) => rank[a.severity] - rank[b.severity]
     || a.file.localeCompare(b.file, "en") || (a.line ?? 0) - (b.line ?? 0)
     || a.ruleId.localeCompare(b.ruleId, "en") || a.message.localeCompare(b.message, "en"));
+  const active = findings.filter((finding) => !suppressed.has(suppressionKey(finding)));
   const summary: Record<Severity, number> = { error: 0, warning: 0, note: 0 };
-  for (const finding of findings) summary[finding.severity]++;
-  return { schemaVersion: 1, findings, summary };
+  for (const finding of active) summary[finding.severity]++;
+  return { schemaVersion: 1, findings: active, summary };
 }

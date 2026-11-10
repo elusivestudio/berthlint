@@ -2,7 +2,7 @@
 
 [All scan evidence](./README.md)
 
-| Report prepared | Shipcheck | Configuration | Declared SDK | Declared Xcode |
+| Report prepared | Berthlint | Configuration | Declared SDK | Declared Xcode |
 | --- | --- | --- | --- | --- |
 | 2026-11-10 | 0.1.0, local development source | Firefox (explicit) | 27.0 | Not supplied |
 
@@ -27,7 +27,7 @@ subdirectory. Metadata and build-toolchain coverage remain incomplete.
 
 ## Reproduce
 
-From the Shipcheck checkout, replacing the placeholder with your clone location:
+From the Berthlint checkout, replacing the placeholder with your clone location:
 
 ```sh
 npm run dev -- /path/to/firefox-ios/firefox-ios --configuration Firefox --ios-sdk-version 27.0 --no-interactive

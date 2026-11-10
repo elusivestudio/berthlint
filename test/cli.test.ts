@@ -103,6 +103,74 @@ describe("CLI end-to-end", () => {
     expect(result.status, result.stderr).toBe(1);
     expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "team/release")).toBe(true);
   });
+  it("never imports configured plugins with --no-plugins, including --list-rules", async () => {
+    const root = await tempProject();
+    await cp(resolve(fixtures, "ios"), root, { recursive: true });
+    await put(root, "berthlint.config.json", JSON.stringify({ plugins: ["./plugin.mjs"] }));
+    await put(root, "plugin.mjs", 'throw new Error("Plugin imported");');
+    expect(run(root).stderr).toContain("Plugin imported");
+    for (const args of [["--format", "json"], ["--list-rules"]]) {
+      const result = run(root, "--no-plugins", ...args);
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).toBe("");
+      expect(result.stdout).toContain("ios/");
+    }
+  });
+  it("suppresses only accepted findings across formats, strict mode and exit codes", async () => {
+    const root = await tempProject();
+    await cp(resolve(fixtures, "ios"), root, { recursive: true });
+    await put(root, "Info.plist", `<?xml version="1.0"?><plist version="1.0"><dict>
+      <key>CFBundleVersion</key><string>0</string></dict></plist>`);
+    const before = run(root, "--format", "json");
+    expect(before.status, before.stderr).toBe(1);
+    const findings = JSON.parse(before.stdout).findings as { ruleId: string; file: string; message: string }[];
+    const accepted = JSON.stringify({
+      schemaVersion: 1,
+      suppressions: findings.map(({ ruleId, file, message }) => ({
+        ruleId, file, message, reason: "Existing findings; tracked for remediation.",
+      })),
+    });
+    await put(root, "accepted.json", accepted);
+    const explicit = run(root, "--suppressions", "accepted.json", "--format", "json", "--strict");
+    expect(explicit.status, explicit.stderr).toBe(0);
+    expect(JSON.parse(explicit.stdout)).toEqual({
+      schemaVersion: 1, findings: [], summary: { error: 0, warning: 0, note: 0 },
+    });
+    await put(root, "berthlint.suppressions.json", accepted);
+    for (const format of ["text", "json", "github", "sarif"]) {
+      const result = run(root, "--format", format, "--strict");
+      expect(result.status, result.stderr).toBe(0);
+      if (format === "sarif") expect(JSON.parse(result.stdout).runs[0].results).toEqual([]);
+      if (format === "github") expect(result.stdout.trim()).toBe("");
+      if (format === "text") expect(result.stdout).toContain("0 error(s), 0 warning(s), 0 note(s)");
+    }
+    await put(root, "App.swift", "let obsolete = UIWebView()");
+    const changed = run(root, "--format", "json", "--strict");
+    expect(changed.status, changed.stderr).toBe(1);
+    expect(JSON.parse(changed.stdout).findings.some((f: { ruleId: string }) =>
+      f.ruleId === "ios/deprecated-apis")).toBe(true);
+  });
+  it("fails explicitly for invalid, unknown or missing explicit suppressions", async () => {
+    const root = resolve(fixtures, "ios");
+    const missing = run(root, "--suppressions", "does-not-exist.json");
+    expect(missing.status).toBe(2);
+    expect(missing.stdout).toBe("");
+    expect(missing.stderr).toContain("Cannot read suppressions");
+    const temporary = await tempProject();
+    await put(temporary, "invalid.json", "{");
+    const invalid = run(root, "--suppressions", resolve(temporary, "invalid.json"));
+    expect(invalid.status).toBe(2);
+    expect(invalid.stdout).toBe("");
+    expect(invalid.stderr).toContain("Invalid suppressions");
+    await put(temporary, "unknown.json", JSON.stringify({
+      schemaVersion: 1, suppressions: [{
+        ruleId: "typo/rule", file: ".", message: "Example", reason: "Reviewed",
+      }],
+    }));
+    const unknown = run(root, "--suppressions", resolve(temporary, "unknown.json"));
+    expect(unknown.status).toBe(2);
+    expect(unknown.stderr).toContain("Unknown suppressed rule");
+  });
   it("uses CLI SDK overrides instead of config and rejects invalid toolchain declarations", async () => {
     const root = await tempProject();
     await cp(resolve(fixtures, "ios"), root, { recursive: true });

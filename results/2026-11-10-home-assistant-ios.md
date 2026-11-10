@@ -2,7 +2,7 @@
 
 [All scan evidence](./README.md)
 
-| Report prepared | Shipcheck | Configuration | Declared SDK | Declared Xcode |
+| Report prepared | Berthlint | Configuration | Declared SDK | Declared Xcode |
 | --- | --- | --- | --- | --- |
 | 2026-11-10 | 0.1.0, local development source | Release (default) | 27.0 | Not supplied |
 
@@ -32,7 +32,7 @@ warning and privacy finding need build/runtime review, not an upstream defect cl
 
 ## Reproduce
 
-From the Shipcheck checkout, replacing the placeholder with your clone location:
+From the Berthlint checkout, replacing the placeholder with your clone location:
 
 ```sh
 npm run dev -- /path/to/home-assistant-ios --ios-sdk-version 27.0 --no-interactive

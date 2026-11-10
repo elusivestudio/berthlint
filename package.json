@@ -28,6 +28,8 @@
     "dist",
     "docs",
     "README.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
     "LICENSE",
     "action.yml"
   ],
