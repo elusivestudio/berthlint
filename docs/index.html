@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="shipcheck rule metadata">
+<title>Rule reference | shipcheck</title>
+<style>
+:root{color-scheme:light dark;font:17px/1.6 system-ui,sans-serif}
+body{max-width:60rem;margin:3rem auto;padding:0 1.25rem}
+a{color:light-dark(#064ca0,#8dc4ff)}code,pre{font-family:ui-monospace,monospace}
+pre{padding:1rem;background:light-dark(#f2f4f7,#20242b);overflow:auto}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.6rem;border-bottom:1px solid #8886}
+footer{margin-top:3rem;border-top:1px solid #8886;padding-top:1rem}h1{line-height:1.2}
+</style>
+</head>
+<body>
+<header><strong>shipcheck</strong> &mdash; static native mobile release checks</header>
+<main>
+<h1>Release checks, explained</h1>
+<p>Run <code>shipcheck</code> in a native iOS or Android repository to check release settings
+and fastlane store metadata without building or uploading.</p>
+<p>Each finding includes a fix suggestion and a policy link. SDK and Xcode versions are
+user declarations, not proof of the toolchain actually used to build.</p>
+<h2>32 built-in rules</h2>
+<table><thead><tr><th scope="col">Rule</th><th scope="col">Severity</th><th scope="col">Check</th></tr></thead>
+<tbody><tr><td><a href="rules/ios/usage-descriptions.html"><code>ios/usage-descriptions</code></a></td><td>warning</td><td>Permission usage descriptions</td></tr>
+<tr><td><a href="rules/ios/privacy-manifest.html"><code>ios/privacy-manifest</code></a></td><td>error</td><td>Required privacy manifest</td></tr>
+<tr><td><a href="rules/ios/privacy-schema.html"><code>ios/privacy-schema</code></a></td><td>error</td><td>Privacy manifest structure</td></tr>
+<tr><td><a href="rules/ios/required-reasons.html"><code>ios/required-reasons</code></a></td><td>warning</td><td>Required-reason API coverage</td></tr>
+<tr><td><a href="rules/ios/transport-security.html"><code>ios/transport-security</code></a></td><td>warning</td><td>App Transport Security exceptions</td></tr>
+<tr><td><a href="rules/ios/version-format.html"><code>ios/version-format</code></a></td><td>error</td><td>Release version and build format</td></tr>
+<tr><td><a href="rules/ios/version-consistency.html"><code>ios/version-consistency</code></a></td><td>warning</td><td>App and extension version consistency</td></tr>
+<tr><td><a href="rules/ios/deprecated-apis.html"><code>ios/deprecated-apis</code></a></td><td>warning</td><td>Deprecated iOS APIs</td></tr>
+<tr><td><a href="rules/ios/sdk-requirements.html"><code>ios/sdk-requirements</code></a></td><td>error</td><td>Declared iOS SDK and Xcode requirements</td></tr>
+<tr><td><a href="rules/ios/sdk-coverage.html"><code>ios/sdk-coverage</code></a></td><td>note</td><td>iOS SDK declaration coverage</td></tr>
+<tr><td><a href="rules/ios/deployment-target.html"><code>ios/deployment-target</code></a></td><td>error</td><td>iOS deployment target compatibility</td></tr>
+<tr><td><a href="rules/ios/deployment-target-coverage.html"><code>ios/deployment-target-coverage</code></a></td><td>note</td><td>iOS deployment target coverage</td></tr>
+<tr><td><a href="rules/android/target-sdk.html"><code>android/target-sdk</code></a></td><td>error</td><td>Google Play target API level</td></tr>
+<tr><td><a href="rules/android/exported-components.html"><code>android/exported-components</code></a></td><td>error</td><td>Explicit component exported values</td></tr>
+<tr><td><a href="rules/android/version-code.html"><code>android/version-code</code></a></td><td>error</td><td>Valid Android version code</td></tr>
+<tr><td><a href="rules/android/version-increment.html"><code>android/version-increment</code></a></td><td>error</td><td>Increasing Android version code</td></tr>
+<tr><td><a href="rules/android/version-baseline.html"><code>android/version-baseline</code></a></td><td>note</td><td>Release comparison coverage</td></tr>
+<tr><td><a href="rules/android/version-name.html"><code>android/version-name</code></a></td><td>warning</td><td>Android release version name</td></tr>
+<tr><td><a href="rules/android/sensitive-permissions.html"><code>android/sensitive-permissions</code></a></td><td>warning</td><td>Sensitive permission review</td></tr>
+<tr><td><a href="rules/android/missing-permissions.html"><code>android/missing-permissions</code></a></td><td>warning</td><td>Potential missing Android permissions</td></tr>
+<tr><td><a href="rules/android/debuggable.html"><code>android/debuggable</code></a></td><td>error</td><td>Non-debuggable release app</td></tr>
+<tr><td><a href="rules/android/cleartext-traffic.html"><code>android/cleartext-traffic</code></a></td><td>warning</td><td>Cleartext traffic review</td></tr>
+<tr><td><a href="rules/android/deprecated-apis.html"><code>android/deprecated-apis</code></a></td><td>warning</td><td>Deprecated Android APIs</td></tr>
+<tr><td><a href="rules/metadata/completeness.html"><code>metadata/completeness</code></a></td><td>warning</td><td>Local store metadata coverage</td></tr>
+<tr><td><a href="rules/metadata/lengths.html"><code>metadata/lengths</code></a></td><td>error</td><td>Store metadata lengths</td></tr>
+<tr><td><a href="rules/metadata/required-fields.html"><code>metadata/required-fields</code></a></td><td>error</td><td>Required store metadata fields</td></tr>
+<tr><td><a href="rules/metadata/localizations.html"><code>metadata/localizations</code></a></td><td>warning</td><td>Localization field parity</td></tr>
+<tr><td><a href="rules/metadata/screenshot-dimensions.html"><code>metadata/screenshot-dimensions</code></a></td><td>error</td><td>Screenshot dimensions</td></tr>
+<tr><td><a href="rules/metadata/screenshot-counts.html"><code>metadata/screenshot-counts</code></a></td><td>error</td><td>Screenshot counts</td></tr>
+<tr><td><a href="rules/metadata/ios-required-screenshots.html"><code>metadata/ios-required-screenshots</code></a></td><td>warning</td><td>Required iOS device screenshots</td></tr>
+<tr><td><a href="rules/system/requirements-stale.html"><code>system/requirements-stale</code></a></td><td>warning</td><td>Requirements freshness</td></tr>
+<tr><td><a href="rules/system/specialized-android-store.html"><code>system/specialized-android-store</code></a></td><td>warning</td><td>Specialized Android screenshot coverage</td></tr></tbody></table>
+<p><code>system/analysis</code> additionally reports parser limitations and skipped checks.
+Configure its severity in the same way as a rule.</p></main>
+<footer>Generated from rule metadata. Policy snapshot: 2026-11-10.
+Static checks do not guarantee store acceptance.
+<a href="https://github.com/elusivestudio/shipcheck">Source and usage</a>.</footer>
+</body>
+</html>

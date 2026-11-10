@@ -29,6 +29,8 @@ export interface IosBundle {
   info: JsonObject;
   version?: string;
   build?: string;
+  deploymentTarget?: string;
+  sourceFiles?: readonly string[];
 }
 
 export interface PrivacyManifest {
@@ -80,6 +82,8 @@ export interface RuleContext {
   defaultLocale: string;
   androidDevice: "phone" | "wear" | "automotive" | "tv" | "xr";
   now: Date;
+  iosSdkVersion?: string;
+  xcodeVersion?: string;
 }
 
 export interface RuleResult extends Location {
@@ -90,6 +94,7 @@ export interface RuleResult extends Location {
 export interface Rule {
   id: string;
   title: string;
+  description?: string | undefined;
   platform: Platform;
   severity: Severity;
   policyUrl: string;

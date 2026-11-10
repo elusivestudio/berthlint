@@ -1,11 +1,40 @@
 # shipcheck
 
-Static release checks for native iOS and Android apps and fastlane store listings.
-Find avoidable release problems **before building or uploading**. No store credentials,
-Xcode, Android SDK, or network access are needed to run checks.
+Catch avoidable release problems in native iOS and Android apps **before building
+or uploading**. Shipcheck statically checks project files and fastlane store
+metadata; it needs no store credentials, Xcode, Android SDK, or network access.
 
-**Initial release:** 27 built-in rules, extensible with trusted JavaScript plugins.
-This project has not been published to npm.
+**32 built-in rules** cover native project settings, privacy and permission
+declarations, and store listings. Extend checks with trusted JavaScript plugins.
+Shipcheck has not yet been published to npm.
+
+![Shipcheck flags an outdated Android target SDK, then passes after it is updated.](./docs/assets/readme-demo.gif)
+
+*Focused Android fixture: the demo checks one rule; a passing scan is not a
+guarantee of store acceptance.*
+
+## What it checks
+
+- **iOS:** SDK and deployment requirements, privacy manifests, usage descriptions,
+  transport security and version consistency.
+- **Android:** submission target SDK, exported components, permissions, debugging
+  settings and version codes.
+- **Store listings:** fastlane metadata fields, localization completeness, and
+  screenshot dimensions and counts.
+- **CI output:** readable text, JSON, SARIF and GitHub workflow annotations.
+
+## In this README
+
+- [Get started](#get-started)
+- [CLI and exit codes](#cli)
+- [Recognized project layouts](#recognized-layouts)
+- [Configuration](#configuration)
+- [Built-in checks](#checks)
+- [Rule documentation](#rule-documentation)
+- [Architecture and plugins](#architecture-and-plugin-api)
+- [Continuous integration](#ci)
+- [Policy data and limitations](#policy-data-and-limitations)
+- [Contributing](#contributing)
 
 ## Get started
 
@@ -37,6 +66,8 @@ shipcheck . --format json
 shipcheck . --format sarif --output shipcheck.sarif
 shipcheck . --format github --strict
 shipcheck . --config config/release.json
+shipcheck . --platform ios --ios-sdk-version 26.0 --xcode-version 26.0
+shipcheck . --no-interactive
 shipcheck --list-rules
 ```
 
@@ -46,6 +77,9 @@ shipcheck --list-rules
 | `--format` | `text` | `text`, `json`, `sarif` (2.1.0), or `github` workflow annotations |
 | `--output` | stdout | Report file, relative to the current working directory |
 | `--config` | `shipcheck.config.json` | Config path relative to the scanned project |
+| `--ios-sdk-version` | config value | User-declared iOS SDK used to build, **not** the deployment target |
+| `--xcode-version` | config value | User-declared numeric Xcode release version |
+| `--no-interactive` | false | Disable the missing-SDK prompt |
 | `--strict` | false | Treat warnings as CI failures |
 | `--list-rules` | false | List rules, default severities and titles without scanning |
 
@@ -99,7 +133,7 @@ headers are read without decoding the image; corruption beyond the headers and
 alpha channels are not checked.
 
 Native projects without discovered store metadata produce a coverage warning.
-Empty locale folders produce missing-field findings instead of a clean scan.
+Empty locale folders produce completeness warnings instead of a clean scan.
 One final line ending and a leading UTF-8 BOM are removed from metadata; other
 whitespace is retained for length checks.
 
@@ -111,6 +145,8 @@ All properties are optional; unknown properties and rule IDs are errors.
 {
   "defaultLocale": "en-US",
   "configuration": "Release",
+  "iosSdkVersion": "26.0",
+  "xcodeVersion": "26.0",
   "androidDevice": "phone",
   "metadata": {
     "ios": "fastlane/metadata",
@@ -134,6 +170,16 @@ Paths are relative to the scanned project. `androidDevice` accepts `phone`, `wea
 SDK minimum, not the existing-app availability threshold. Non-phone screenshot
 checks are explicitly skipped with a coverage warning.
 
+Xcode configuration names must match exactly; Shipcheck does not guess another
+configuration or silently skip targets when `Release` is absent. Override with
+`--configuration <name>` or the `configuration` setting. For example, Firefox
+iOS uses `Firefox` for its archive configuration. Its repository also contains
+Focus, so scan the Firefox app subdirectory:
+
+```sh
+npm run dev -- /path/to/firefox-ios/firefox-ios --configuration Firefox
+```
+
 For a reproducible git release comparison, set `"baselineTag": "v1.2.0"` instead
 of `previousAndroidVersionCode`. Shipcheck reads each module's Gradle file at that
 tag without checking it out. If both are set, `baselineTag` takes precedence.
@@ -143,6 +189,35 @@ reveal Android's build number. Without a baseline, a note reports the skipped ch
 
 Rule values are `off`, `error`, `warning`, or `note`, either directly or in a
 `{ "severity": ... }` object. `system/analysis` controls loader coverage diagnostics.
+
+### iOS SDK, Xcode and deployment targets
+
+The **build SDK** and **deployment target** are different. An app can be built with
+the iOS 26 SDK while supporting iOS 15 devices. Do not enter `15.0` as the SDK just
+because `IPHONEOS_DEPLOYMENT_TARGET` is `15.0`.
+
+Shipcheck compares the declared SDK and optional Xcode release against the dated
+App Store upload requirements. CLI values override config values. These inputs
+describe your intended build; they do **not** prove which SDK/Xcode built an archive.
+`SDKROOT = iphoneos` and project migration markers are not used to guess versions.
+
+If a native iOS app is found and no SDK is supplied, Shipcheck prompts **only** for
+a text scan with stdin, stdout and stderr attached to terminals, no `--output`,
+no nonempty `CI` environment variable, and no `--no-interactive`. Disabling
+`ios/sdk-requirements` also disables the prompt. Enter skips it; an invalid
+nonempty answer is an execution error. Answers are not saved to config.
+JSON, SARIF, GitHub annotations, redirected output, Android-only scans and CI
+never prompt. Missing SDK information produces a nonblocking coverage note.
+
+Deployment targets come from the selected Xcode configuration (target settings
+override project settings), or `MinimumOSVersion` in standalone plists. They are
+checked for numeric format, the dated App Store deployment minimum (iOS 13+
+since September 9, 2026), and against the declared SDK. The stricter Xcode
+deployment support floor is checked only for families explicitly recorded in
+policy data (currently Xcode 26 and 27: iOS 15+). Device debugging support is a
+different column in Apple's table and is not used as a deployment minimum.
+Missing/unresolved targets or unknown/undeclared Xcode support produce coverage
+notes. xcconfig files and build-command overrides still require manual verification.
 
 ## Checks
 
@@ -159,6 +234,10 @@ Warnings identify review work or heuristics, not certain store rejections.
 | `ios/version-format` | error | Resolved release marketing version and build-number format |
 | `ios/version-consistency` | warning | Version/build mismatches among app/extension targets in the same project |
 | `ios/deprecated-apis` | warning | `UIWebView`, `UIAlertView`, `UIActionSheet` |
+| `ios/sdk-requirements` | error | Declared iOS SDK and Xcode releases vs dated App Store upload minimums |
+| `ios/sdk-coverage` | note | Missing user-declared build SDK |
+| `ios/deployment-target` | error | Numeric target, dated store OS minimum, target vs declared SDK, documented Xcode deployment floor |
+| `ios/deployment-target-coverage` | note | Missing/unresolved target or unverified Xcode support range |
 | `android/target-sdk` | error | Device-specific Play submission target API minimum; unresolved values are reported |
 | `android/exported-components` | error | Explicit exported values on activities, aliases, services and receivers with intent filters at target 31+ |
 | `android/version-code` | error | Literal integer from 1 through 2100000000 |
@@ -171,10 +250,11 @@ Warnings identify review work or heuristics, not certain store rejections.
 | `android/cleartext-traffic` | warning | Cleartext traffic explicitly enabled |
 | `android/deprecated-apis` | warning | `AsyncTask`, framework `Fragment`, `startActivityForResult` |
 | `metadata/lengths` | error | iOS name/subtitle/keywords/description/promotional text/release notes and Android title/short/full description |
-| `metadata/required-fields` | error | Missing/blank mandatory listing fields and minimum iOS name length |
-| `metadata/localizations` | warning | Default locale presence and field parity |
+| `metadata/completeness` | warning | Summarized absent required files or screenshot sets, without assuming remote/fallback values |
+| `metadata/required-fields` | error | Blank/too-short mandatory listing fields that are present locally |
+| `metadata/localizations` | warning | Default locale presence and optional-field parity, without duplicate required-field findings |
 | `metadata/screenshot-dimensions` | error | Known iPhone/iPad sizes, Play phone/tablet 320–3840 px and maximum 2:1 aspect ratio |
-| `metadata/screenshot-counts` | error | iOS 1+ screenshots / maximum 10 per display group; Android 2+ total / maximum 8 per device group |
+| `metadata/screenshot-counts` | error | Present screenshot sets: Android 2+ total; maximum 10 per iOS display group / 8 per Android group |
 | `metadata/ios-required-screenshots` | warning | Current/scalable iPhone groups and 13-inch iPad assets where iPad support is known |
 | `system/requirements-stale` | warning | Policy data older than its 180-day review window |
 | `system/specialized-android-store` | warning | Unsupported device-specific screenshot coverage |
@@ -182,6 +262,60 @@ Warnings identify review work or heuristics, not certain store rejections.
 iOS keywords are measured in **UTF-8 bytes**, not JavaScript string length.
 Other text limits count Unicode code points; store-side counting of complex
 graphemes may differ.
+
+### Local listing completeness versus invalid values
+
+Absent metadata files and entirely absent local screenshot sets produce grouped
+`metadata/completeness` warnings, with all affected locales listed. Shipcheck
+cannot inspect existing remote listings or prove which fallback the store will
+apply. It never silently fills values from another locale. Present blank required
+fields, overlong strings, invalid image sizes, excess counts and undersized
+nonempty screenshot sets remain errors. Required-field absence/blank values are
+not repeated as localization parity warnings.
+
+For a listing that must be self-contained locally, configure:
+
+```json
+{
+  "rules": {
+    "metadata/completeness": "error"
+  }
+}
+```
+
+`--strict` also fails on completeness warnings, as it does on other warnings.
+This intentionally changes first-run behavior: an absent local screenshot set
+alone no longer proves a blocking store submission error.
+
+### Source ownership and repeated findings
+
+iOS usage-description checks use explicit Sources build phases and Xcode
+filesystem-synchronized groups, including membership exceptions. Known non-iOS
+targets are excluded; sources owned only by Watch/test targets are not treated as
+iOS app usage. Sources shared with an iOS app are retained. For sources that
+cannot be mapped (such as package code), one ownership-review warning per
+permission replaces missing-string claims against every unrelated extension.
+Standalone plists retain heuristic source checks because target membership is
+unavailable. Swift package reachability is not inferred.
+
+Version-consistency checks exclude missing/unresolved version/build pairs.
+xcconfig and deployment-coverage messages group affected targets by project
+without hiding which targets were skipped. Deprecated-API checks ignore
+import-only lines and report each API once per file at its first non-import use.
+Warnings still require review; they are not automatic store rejections.
+
+## Rule documentation
+
+The [static rule reference](./docs/index.html) contains one page per rule, with the
+reason for the check, limitations, remediation, default severity and official
+policy link. Open it locally in a browser, or serve the `docs/` directory with any
+static web server. The pages need no dependencies or JavaScript and are included
+in the npm package. Public hosting is a separate release step.
+
+Generate it with `npm run docs` after changing rule metadata. `npm run docs:check`
+and `npm run check` reject stale or missing pages. The original implementation
+scope is in [the plan](./plan.md); reproducible release checks are documented in
+[release validation](./docs/release-validation.md).
 
 ## Architecture and plugin API
 
@@ -221,7 +355,9 @@ export default {
 
 Rule IDs are namespaced (`namespace/kebab-case`). `check(model, context)` is
 synchronous and returns `{ file, line?, message, policyUrl? }[]`; context contains the default
-locale, Android device category and current date. The engine supplies severity,
+locale, Android device category, current date, and optional declared SDK/Xcode
+versions. Optional rule `description` metadata supplies the explanation for
+generated documentation. The engine supplies severity,
 policy URL and remediation from the rule metadata. A result can override the
 policy URL when a cross-platform rule needs a store-specific link. Throwing rules, malformed
 findings and duplicate IDs fail explicitly.
@@ -243,6 +379,8 @@ annotations. After checking out Shipcheck into a `tools/shipcheck` subdirectory:
     path: .
     strict: "true"
     platform: all
+    ios-sdk-version: "26.0"
+    xcode-version: "26.0"
 ```
 
 Alternatively run `node /path/to/shipcheck/dist/cli.js . --format sarif --output
@@ -253,41 +391,58 @@ SARIF paths are relative to the scanned project; set the upload action's
 `checkout_path` accordingly if scanning a subdirectory.
 
 Repository CI runs strict source/test type-checking, tests, compilation and a
-package-content check on Node 22 and 24. A weekly workflow fails when the
+generated-docs check and installable-package smoke test on Node 22 and 24.
+Run `npm run smoke:package` locally to pack and install into a temporary consumer,
+then verify the CLI, JSON report, public ESM exports and packaged documentation.
+This needs npm registry access and does not publish anything.
+A weekly workflow fails when the
 requirements review date is overdue; it does not automatically change policies.
 
 ## Policy data and limitations
 
 Store limits live in [versioned JSON](./src/requirements/store.v1.json), with a
-`verifiedOn` date and official source URLs. Baseline verified **2026-11-09**.
+`verifiedOn` date and official source URLs. Baseline verified **2026-11-10**.
 Review the linked sources before relying on a release decision. A future policy
 change needs a data/rule update; runtime validation never fetches policy changes.
 
 This is static triage, **not an App Review replacement**:
 
-- Gradle is not executed. Literal Groovy/Kotlin settings work; version catalogs,
-  arbitrary variables, arithmetic, plugins and manifest merging are not evaluated.
+- Gradle is not executed. Literal Groovy/Kotlin settings and supported default
+  version-catalog/property references are resolved statically. For assignment-form
+  declarations, supported examples are `libs.versions.app.targetSdk.get().toInt()`
+  and `project.property("VERSION_CODE").toString().toInt()`; string values may omit
+  `.toInt()`. Simple single-line `val` aliases and catalog application-plugin
+  aliases are supported. Only root `gradle/libs.versions.toml` and
+  `gradle.properties` are read; custom catalogs, providers, environment values,
+  arbitrary variables, arithmetic, plugin execution and manifest merging are not
+  evaluated. Unsupported declared values remain unresolved with diagnostics,
+  rather than silently falling back to manifest values. Historical version
+  comparisons read shared values from the baseline tag, not today's files.
   Detected flavors/overrides produce a coverage warning. Libraries can contribute
   permissions or components that are absent from the source app manifest.
 - Xcode's selected configuration and directly inherited project settings are
   inspected. Referenced xcconfig files produce a warning; nested variables,
   conditional settings, localized usage strings and build-generated values may
-  remain unresolved. Xcode/SDK upload requirements and deployment compatibility
-  cannot be certified without examining the actual build environment/artifact.
+  remain unresolved. SDK/Xcode checks validate user declarations and deployment
+  targets, not the actual build environment or artifact. They cannot certify
+  the uploaded archive's toolchain or OS compatibility.
 - Source scanning is a conservative token heuristic, not compiler analysis. It
-  excludes ordinary comments but may flag strings or inactive code. It does not
-  reconstruct target membership. API usage is compared against scanned native
-  targets, so manually verify which target owns the code.
+  excludes ordinary comments but may flag strings or inactive code. Direct Xcode
+  source membership is inspected, but package dependency reachability and
+  conditional compilation are not reconstructed. Unmapped usage requires review.
 - Privacy coverage is compared across discovered manifests, not executable bundle
   membership. A declaration in a sibling target does **not** prove compliance.
   Reason-code syntax and category presence are checked, not whether Apple approves
   that code for the category or whether the claimed reason is truthful. Third-party
   SDK privacy practices and manifests require independent review.
-- Metadata/localization completeness checks are intentionally stricter than store
-  fallback behavior. Disable/tune them when a deliberate localization fallback is
-  part of your release process. Existing listings may already contain missing assets.
+- Metadata/localization completeness is advisory by default: remote listing state
+  and deliberate locale fallback are not inspected. Promote completeness warnings
+  to errors when your release process requires a fully local listing.
 - Screenshot checks cover iPhone/iPad and Android phone/tablet listing images,
   not videos, icons, image content, alpha, watch/TV/XR assets or all scaling rules.
+  Published iPhone Duo dimensions are recognized. Apple's April 2027 SDK-dependent
+  Duo screenshot requirement is not yet enforced; re-verify its final activation
+  details before releases in that period.
 - Built `.ipa`/`.aab` files, uploading, credentials, React Native/Flutter-specific
   layouts and exhaustive deprecated-API analysis are outside this first release.
 

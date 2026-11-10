@@ -4,6 +4,14 @@
   "description": "Static release checks for native mobile apps and fastlane store metadata.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elusivestudio/shipcheck.git"
+  },
+  "bugs": {
+    "url": "https://github.com/elusivestudio/shipcheck/issues"
+  },
+  "homepage": "https://github.com/elusivestudio/shipcheck#readme",
   "engines": {
     "node": ">=22.18.0"
   },
@@ -18,6 +26,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
     "LICENSE",
     "action.yml"
@@ -27,8 +36,11 @@
     "dev": "node src/cli.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run",
-    "check": "npm run typecheck && npm test && npm run build",
-    "prepack": "npm run build"
+    "docs": "node scripts/generate-docs.ts",
+    "docs:check": "node scripts/generate-docs.ts --check",
+    "smoke:package": "node scripts/smoke-package.ts",
+    "check": "npm run typecheck && npm test && npm run docs:check && npm run build",
+    "prepack": "npm run docs:check && npm run build"
   },
   "dependencies": {
     "fast-xml-parser": "^5.12.0",

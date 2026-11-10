@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Rule } from "../types.ts";
 import { requirements } from "../requirements.ts";
 import { array, object } from "../loaders/helpers.ts";
-import { defineRule, sourceMatches } from "./helpers.ts";
+import { defineRule, deprecatedMatches, sourceMatches } from "./helpers.ts";
 
 const privacyUrl = requirements.sources.iosPrivacy;
 const infoUrl = "https://developer.apple.com/documentation/bundleresources/information-property-list";
@@ -47,22 +47,34 @@ const privacySchema = z.object({
 export const iosRules: Rule[] = [
   defineRule({
     id: "ios/usage-descriptions", title: "Permission usage descriptions", platform: "ios", severity: "warning",
+    description: "Protected resources need meaningful purpose strings. Direct Xcode source membership and synchronized groups identify targets; unmapped sources produce a single ownership-review finding instead of claims against unrelated extensions. Package dependency reachability is not inferred.",
     policyUrl: infoUrl, fix: "Add meaningful usage descriptions to the relevant target's Info.plist; verify API use and target membership.",
     check(model) {
       return permissions.flatMap(({ pattern, key }) => {
         const uses = sourceMatches(model, "ios", pattern);
         if (!uses.length) return [];
-        return model.ios.filter((bundle) => typeof bundle.info[key] !== "string"
-          || !(bundle.info[key] as string).trim() || (bundle.info[key] as string).includes("$("))
-          .map((bundle) => ({
+        const findings = model.ios.flatMap((bundle) => {
+          const owned = bundle.sourceFiles === undefined ? uses : uses.filter((use) => bundle.sourceFiles!.includes(use.file));
+          const description = bundle.info[key];
+          return owned.length && (typeof description !== "string" || !description.trim() || /\$[({]/.test(description)) ? [{
             file: bundle.file,
-            message: `${bundle.name} is missing ${key}; possible API use in ${uses[0]!.file}:${uses[0]!.line}.`,
-          }));
+            message: `${bundle.name} is missing ${key}; possible API use in ${owned[0]!.file}:${owned[0]!.line}.`,
+          }] : [];
+        });
+        if (model.ios.length && model.ios.every((bundle) => bundle.sourceFiles !== undefined)) {
+          const unowned = uses.filter((use) => !model.ios.some((bundle) => bundle.sourceFiles!.includes(use.file)));
+          if (unowned.length) findings.push({
+            file: unowned[0]!.file,
+            message: `Possible API use requiring ${key} in ${unowned[0]!.file}:${unowned[0]!.line}; target ownership is unknown. Review linked packages and the consuming target's usage string; no missing string is asserted for unrelated targets.`,
+          });
+        }
+        return findings;
       });
     },
   }),
   defineRule({
     id: "ios/privacy-manifest", title: "Required privacy manifest", platform: "ios", severity: "error",
+    description: "Detected required-reason API use needs a bundled privacy manifest. Finding a manifest somewhere in the repository does not establish bundle membership.",
     policyUrl: privacyUrl, fix: "Add PrivacyInfo.xcprivacy to each bundle that uses required-reason APIs.",
     check(model) {
       if (model.privacy.length || !model.ios.length) return [];
@@ -72,6 +84,7 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/privacy-schema", title: "Privacy manifest structure", platform: "ios", severity: "error",
+    description: "Malformed privacy fields can prevent correct submission. This validates structure and reason-code syntax, not Apple's approval of a reason for a category.",
     policyUrl: privacyUrl, fix: "Correct manifest field types and supply nonempty reason codes and complete collected-data declarations.",
     check: (model) => model.privacy.flatMap((manifest) => {
       const parsed = privacySchema.safeParse(manifest.data);
@@ -82,6 +95,7 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/required-reasons", title: "Required-reason API coverage", platform: "ios", severity: "warning",
+    description: "Each detected API category needs a truthful approved reason. Declarations are combined across scanned manifests; review each app and extension separately.",
     policyUrl: privacyUrl, fix: "Declare an approved, truthful reason in the manifest of the bundle using the API. Review SDK manifests separately.",
     check(model) {
       if (!model.ios.length || !model.privacy.length) return [];
@@ -97,6 +111,7 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/transport-security", title: "App Transport Security exceptions", platform: "ios", severity: "warning",
+    description: "Broad ATS bypasses and domain exceptions weaken transport protection and may need justification during App Review.",
     policyUrl: "https://developer.apple.com/documentation/bundleresources/information-property-list/nsapptransportsecurity",
     fix: "Remove broad ATS exceptions; document and justify any required domain exceptions for App Review.",
     check: (model) => model.ios.filter(({ info }) => {
@@ -107,10 +122,11 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/version-format", title: "Release version and build format", platform: "ios", severity: "error",
+    description: "Store submissions need numeric release versions and valid build numbers. Unresolved build variables are diagnosed by the loader instead of treated as literal versions.",
     policyUrl: infoUrl, fix: "Set a numeric major.minor.patch version and a positive one-to-three-component release build number.",
     check: (model) => model.ios.flatMap((bundle) => {
       const issues = [];
-      const unresolved = (value?: string) => value?.includes("$(");
+      const unresolved = (value?: string) => value !== undefined && /\$[({]/.test(value);
       if (!unresolved(bundle.version) && (!bundle.version || !/^\d+\.\d+\.\d+$/.test(bundle.version))) {
         issues.push({ file: bundle.file, message: `${bundle.name}: invalid or unresolved marketing version (${bundle.version ?? "missing"}).` });
       }
@@ -122,12 +138,15 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/version-consistency", title: "App and extension version consistency", platform: "ios", severity: "warning",
+    description: "App and embedded extension versions should agree. Only fully resolved version/build pairs in one project are compared; missing or unresolved targets are excluded. Independently versioned apps may need an override.",
     policyUrl: infoUrl, fix: "Align app and embedded extension versions and builds. Independently versioned apps may disable this rule.",
     check(model) {
-      const mismatched = model.ios.filter((bundle) => {
-        const versions = new Set(model.ios.filter((other) => other.project === bundle.project)
-          .map((other) => `${other.version}/${other.build}`));
-        return versions.size > 1;
+      const resolved = model.ios.filter((bundle) => bundle.version && bundle.build
+        && !/\$[({]/.test(bundle.version) && !/\$[({]/.test(bundle.build));
+      const mismatched = resolved.filter((bundle) => {
+        const peers = resolved.filter((other) => other.project === bundle.project);
+        return new Set(peers.map((other) => other.version)).size > 1
+          || new Set(peers.map((other) => other.build)).size > 1;
       });
       return mismatched.map((bundle) => ({
         file: bundle.file, message: `${bundle.name} is ${bundle.version}/${bundle.build}; scanned targets have differing versions or builds.`,
@@ -136,9 +155,10 @@ export const iosRules: Rule[] = [
   }),
   defineRule({
     id: "ios/deprecated-apis", title: "Deprecated iOS APIs", platform: "ios", severity: "warning",
+    description: "Legacy UIKit APIs can cause compatibility or review issues. Imports are ignored and each API is reported once per file. This is a small token-based review list, not exhaustive deprecation analysis.",
     policyUrl: "https://developer.apple.com/documentation/webkit/wkwebview",
     fix: "Replace UIWebView with WKWebView and UIAlertView/UIActionSheet with UIAlertController.",
-    check: (model) => sourceMatches(model, "ios", /\b(?:UIWebView|UIAlertView|UIActionSheet)\b/)
+    check: (model) => deprecatedMatches(model, "ios", /\b(?:UIWebView|UIAlertView|UIActionSheet)\b/)
       .map((match) => ({ ...match, message: `Deprecated iOS API: ${match.message}.` })),
   }),
 ];

@@ -16,6 +16,22 @@ export function sourceMatches(
         message: match[0],
       });
     }
+
     return matches;
+  });
+}
+
+export function deprecatedMatches(
+  model: ProjectModel, platform: SourceFile["platform"], pattern: RegExp,
+): (Location & { message: string })[] {
+  const seen = new Set<string>();
+  return sourceMatches(model, platform, pattern).filter((match) => {
+    const source = model.sources.find((source) => source.file === match.file && source.platform === platform)!;
+    const line = source.text.split("\n")[(match.line ?? 1) - 1] ?? "";
+    if (/^\s*(?:import\b|@import\b|#\s*(?:import|include)\b)/.test(line)) return false;
+    const key = `${match.file}\0${match.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }

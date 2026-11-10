@@ -77,3 +77,27 @@ Go is a reasonable alternative if you prefer a single static binary. I'd still c
 4. **Launch:** run it against a few popular open-source mobile apps and share any real issues it finds. That demonstrates its value.
 
 Before you build, verify the current store limits and the required-reason API list against Apple's and Google's docs, since I haven't checked them for this sketch. I can draft the `Rule` interface and the first three rules in TypeScript, or write the README, if you'd like.
+
+## MVP implementation status (2026-11-10)
+
+The original proposal above is preserved as the baseline.
+
+- Implemented: native/fastlane loaders, pure rule engine, 32 built-in rules,
+  configuration, plugins, all four reporters, GitHub Action and CI.
+- Completed the iOS gap: deployment targets, dated SDK/Xcode requirements,
+  user-declared toolchain inputs and a terminal-only SDK prompt. Build SDK,
+  deployment target and device-debugging support remain distinct concepts.
+- Generated static documentation includes a page per rule, with metadata-driven
+  explanations, fixes, policy links and configuration. CI verifies freshness.
+- Policy sources were rechecked; packaged installation and two pinned public
+  native projects were smoke-tested. See [release validation](./docs/release-validation.md)
+  for reproduction steps, findings and explicit coverage limitations.
+- Remaining release operations: npm publication and optional public docs hosting.
+  The README GIF and public launch announcement are optional presentation work.
+- Built artifacts, uploads, credentials, specialized Android asset validation and
+  React Native/Flutter-specific support remain outside this release.
+- Real-app follow-up: scoped iOS source ownership and non-iOS/test exclusions,
+  resolved-only version comparison, grouped coverage/completeness reporting,
+  deduplicated deprecated APIs and common Gradle catalog/property resolution.
+  Absent local store assets now produce advisory completeness warnings; actual
+  invalid values remain errors.

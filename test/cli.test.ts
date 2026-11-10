@@ -27,6 +27,20 @@ describe("CLI end-to-end", () => {
     expect(JSON.parse(result.stdout).summary.error).toBe(0);
     expect(run(root, "--strict").status).toBe(1);
   });
+  it("overrides the configured Xcode configuration without guessing or silently skipping", async () => {
+    const root = await tempProject();
+    const file = "App.xcodeproj/project.pbxproj";
+    const pbx = await readFile(resolve(fixtures, "xcode", file), "utf8");
+    await put(root, file, pbx.replaceAll("Release", "Firefox"));
+    await put(root, "shipcheck.config.json", JSON.stringify({ configuration: "Other" }));
+    const missing = run(root, "--format", "json");
+    expect(missing.status).toBe(2);
+    expect(missing.stderr).toContain("Available configurations: Firefox");
+    const selected = run(root, "--configuration", "Firefox", "--format", "json");
+    expect(selected.status, selected.stderr).toBe(0);
+    expect(JSON.parse(selected.stdout).summary.error).toBe(0);
+    expect(run(root, "--configuration", "").status).toBe(2);
+  });
   it("returns 1 with a structured report for release-blocking findings", async () => {
     const root = await tempProject();
     await cp(resolve(fixtures, "ios"), root, { recursive: true });
@@ -35,6 +49,23 @@ describe("CLI end-to-end", () => {
     const result = run(root, "--format", "json");
     expect(result.status, result.stderr).toBe(1);
     expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "ios/version-format")).toBe(true);
+  });
+  it("keeps absent local listing assets advisory, with explicit strict and self-contained gates", async () => {
+    const root = await tempProject();
+    await put(root, "fastlane/metadata/en-US/name.txt", "Example app");
+    const advisory = run(root, "--format", "json");
+    expect(advisory.status, advisory.stderr).toBe(0);
+    expect(JSON.parse(advisory.stdout).findings.every((finding: { ruleId: string }) =>
+      finding.ruleId === "metadata/completeness")).toBe(true);
+    expect(run(root, "--strict").status).toBe(1);
+    await put(root, "shipcheck.config.json", JSON.stringify({ rules: { "metadata/completeness": "error" } }));
+    expect(run(root, "--format", "json").status).toBe(1);
+    await put(root, "shipcheck.config.json", "{}");
+    await put(root, "fastlane/metadata/en-US/keywords.txt", "é".repeat(51));
+    const invalid = run(root, "--format", "json");
+    expect(invalid.status, invalid.stderr).toBe(1);
+    expect(JSON.parse(invalid.stdout).findings.some((finding: { ruleId: string; severity: string }) =>
+      finding.ruleId === "metadata/lengths" && finding.severity === "error")).toBe(true);
   });
   it("writes SARIF output without contaminating stdout", async () => {
     const root = await tempProject();
@@ -69,5 +100,52 @@ describe("CLI end-to-end", () => {
     const result = run(root, "--format", "json");
     expect(result.status, result.stderr).toBe(1);
     expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "team/release")).toBe(true);
+  });
+  it("uses CLI SDK overrides instead of config and rejects invalid toolchain declarations", async () => {
+    const root = await tempProject();
+    await cp(resolve(fixtures, "ios"), root, { recursive: true });
+    await put(root, "shipcheck.config.json", JSON.stringify({ iosSdkVersion: "1.0", xcodeVersion: "1.0" }));
+    const result = run(root, "--ios-sdk-version", "99.0", "--xcode-version", "99.0", "--format", "json");
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "ios/sdk-requirements")).toBe(false);
+    for (const option of ["--ios-sdk-version", "--xcode-version"]) {
+      expect(run(root, option, "26 beta").status).toBe(2);
+    }
+  });
+  it("reports missing SDK coverage without prompting noninteractive invocations", () => {
+    const result = run(resolve(fixtures, "ios"), "--format", "json");
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout).findings.some((f: { ruleId: string }) => f.ruleId === "ios/sdk-coverage")).toBe(true);
+  });
+  it("prompts only for interactive text scans and accepts or skips a declared SDK", async () => {
+    const root = await tempProject();
+    const preload = resolve(root, "tty.mjs");
+    await put(root, "tty.mjs", `
+      Object.defineProperty(process.stdin, "isTTY", { value: true });
+      Object.defineProperty(process.stdout, "isTTY", { value: true });
+      Object.defineProperty(process.stderr, "isTTY", { value: true });
+    `);
+    const scan = (args: string[], input: string, ci = "") => spawnSync(process.execPath, [
+      "--import", preload, cli, resolve(fixtures, "ios"), ...args,
+    ], { encoding: "utf8", input, env: { ...process.env, CI: ci }, timeout: 10000 });
+    const accepted = scan([], "99.0\n");
+    expect(accepted.status, accepted.stderr).toBe(0);
+    expect(accepted.stderr).toContain("Which iOS SDK");
+    expect(accepted.stdout).not.toContain("[ios/sdk-coverage]");
+    const skipped = scan([], "\n");
+    expect(skipped.status, skipped.stderr).toBe(0);
+    expect(skipped.stdout).toContain("[ios/sdk-coverage]");
+    expect(scan([], "not-a-version\n").status).toBe(2);
+    for (const args of [
+      ["--format", "json"], ["--format", "sarif"], ["--format", "github"],
+      ["--no-interactive"], ["--ios-sdk-version", "99.0"], ["--list-rules"],
+      ["--output", resolve(root, "report.txt")],
+    ]) {
+      const result = scan(args, "");
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stderr).not.toContain("Which iOS SDK");
+    }
+    expect(scan([], "", "true").stderr).not.toContain("Which iOS SDK");
   });
 });
