@@ -6,7 +6,9 @@ metadata; it needs no store credentials, Xcode, Android SDK, or network access.
 
 **32 built-in rules** cover native project settings, privacy and permission
 declarations, and store listings. Extend checks with trusted JavaScript plugins.
-Berthlint has not yet been published to npm.
+
+[Version 0.1.0 is available on npm](https://www.npmjs.com/package/berthlint/v/0.1.0),
+published with build provenance from GitHub Actions.
 
 ![Berthlint flags an outdated Android target SDK, then passes after it is updated.](./docs/assets/readme-demo.gif)
 
@@ -41,13 +43,41 @@ guarantee of store acceptance.*
 
 Requires Node.js **22.18+** (Node 24 LTS recommended) and npm.
 
+Run a pinned version without a local checkout:
+
+```sh
+npx berthlint@0.1.0 /path/to/mobile-app
+```
+
+Or install the CLI globally:
+
+```sh
+npm install --global berthlint@0.1.0
+berthlint /path/to/mobile-app
+```
+
+For a reproducible project or CI dependency, install it locally and commit your
+lockfile:
+
+```sh
+npm install --save-dev --save-exact berthlint@0.1.0
+npx berthlint . --strict --no-interactive --no-plugins
+```
+
+Scanning is offline; installing the package requires npm registry access unless
+the package and its dependencies are already cached.
+
+### Develop from source
+
+For development, run from a source checkout:
+
 ```sh
 npm install
 npm run build
 node dist/cli.js /path/to/mobile-app
 ```
 
-For development, TypeScript runs directly on Node:
+TypeScript also runs directly on Node:
 
 ```sh
 npm run dev -- /path/to/mobile-app --strict
@@ -56,16 +86,6 @@ npm run check
 
 From a checkout, install the CLI locally with `npm link`, then run `berthlint`
 inside a mobile repository. `npm pack` creates an installable package.
-The package is prepared for `npx berthlint` once published; that command does not
-currently refer to this unpublished checkout.
-
-After `0.1.0` is published, a clone and local build will no longer be necessary:
-
-```sh
-npx berthlint@0.1.0 /path/to/mobile-app
-# Or install a pinned CLI:
-npm install --global berthlint@0.1.0
-```
 
 ### How this differs
 
@@ -440,13 +460,18 @@ with privileged `pull_request_target` credentials. See [SECURITY.md](./SECURITY.
 
 ## CI
 
-Run the built CLI directly in any CI with Node 22.18+.
+Use Node 22.18+ in CI. With Berthlint installed as a pinned dev dependency:
 
-The included [composite action](./action.yml) builds this checkout and emits GitHub
-annotations. After checking out Berthlint into a `tools/berthlint` subdirectory:
+```sh
+npm ci --include=dev
+npx --no-install berthlint . --strict --no-interactive --no-plugins
+```
+
+The included [composite action](./action.yml) builds its own tagged source and
+emits GitHub annotations. After checking out your mobile app:
 
 ```yaml
-- uses: ./tools/berthlint
+- uses: elusivestudio/berthlint@v0.1.0
   with:
     path: .
     strict: "true"
@@ -456,16 +481,20 @@ annotations. After checking out Berthlint into a `tools/berthlint` subdirectory:
     xcode-version: "26.0"
 ```
 
-Once a maintainer pushes the `v0.1.0` release tag, replace
-`uses: ./tools/berthlint` with `uses: elusivestudio/berthlint@v0.1.0` and omit the
-separate tool checkout. The composite action builds its own tagged source;
-it does not depend on npm publication. Pin a reviewed commit SHA for stronger
-immutability. The `no-plugins` input defaults to `"false"` for compatibility;
-enable it for untrusted code. An optional `suppressions` input selects a
-project-relative suppressions file.
+No separate tool checkout is needed. Pin a reviewed commit SHA for stronger
+immutability. To test a local checkout at `tools/berthlint`, use
+`uses: ./tools/berthlint` instead. The `no-plugins` input defaults to `"false"` for
+compatibility; enable it for untrusted code. An optional `suppressions` input
+selects a project-relative suppressions file.
 
-Alternatively run `node /path/to/berthlint/dist/cli.js . --format sarif --output
-berthlint.sarif` and upload with `github/codeql-action/upload-sarif` using
+For SARIF output from the installed package:
+
+```sh
+npx --no-install berthlint . --no-interactive --no-plugins \
+  --format sarif --output berthlint.sarif
+```
+
+Upload with `github/codeql-action/upload-sarif` using
 `sarif_file: berthlint.sarif` and `security-events: write` permissions.
 Run the upload step with `if: always()` because validation findings return 1.
 SARIF paths are relative to the scanned project; set the upload action's
@@ -481,8 +510,8 @@ requirements review date is overdue; it does not automatically change policies.
 
 ### fastlane
 
-After installing a pinned CLI (currently via `npm link` from a checkout), put the
-check before the existing build/upload steps in your `Fastfile`:
+After installing a pinned CLI, put the check before the existing build/upload
+steps in your `Fastfile`:
 
 ```ruby
 lane :release do
@@ -566,7 +595,7 @@ submitting changes.
 Report reproducible bugs or false positives using the repository's issue
 templates. Report vulnerabilities privately as described in
 [SECURITY.md](./SECURITY.md). See the [changelog](./CHANGELOG.md) and
-[release instructions](./docs/releasing.md) for distribution status and the
+[release instructions](./docs/releasing.md) for release history and the
 provenance-enabled publication process.
 
 MIT licensed.
