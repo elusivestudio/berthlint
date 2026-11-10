@@ -3,6 +3,7 @@ import { cp, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import packageJson from "../package.json" with { type: "json" };
 import { put, tempProject } from "./helpers.ts";
 
 const cli = fileURLToPath(new URL("../src/cli.ts", import.meta.url));
@@ -14,7 +15,9 @@ function run(...args: string[]) {
 describe("CLI end-to-end", () => {
   it("shows help, version and rules without requiring a mobile project", () => {
     expect(run("--help").stdout).toContain("Usage: berthlint");
-    expect(run("--version").stdout.trim()).toBe("0.1.0");
+    const version = run("--version");
+    expect(version.status, version.stderr).toBe(0);
+    expect(version.stdout.trim()).toBe(packageJson.version);
     const listed = run("--list-rules");
     expect(listed.status).toBe(0);
     expect(listed.stdout).toContain("ios/version-format");
